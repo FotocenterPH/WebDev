@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Photo development and printing - FOTOCENTER in Skövde">
+    <title>FOTOCENTER Philippines - Photo Development & Printing</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600&family=Nunito:wght@400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand" onclick="navigateTo('home'); return false;" style="cursor: pointer;">
+                <h1 class="logo">FOTOCENTER PH</h1>
+            </div>
+
+            <!-- FIXED HAMBURGER MENU -->
+            <div class="hamburger-menu" id="hamburgerMenu">
+                <button class="hamburger-icon" id="hamburgerIcon" aria-label="Menu">
+                    <span class="hamburger-bars">
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                    </span>
+                    <span class="hamburger-label" data-i18n="menu">Menu</span>
+                </button>
+                <div class="hamburger-dropdown" id="hamburgerDropdown">
+                    <a href="#" onclick="navigateTo('photos'); return false;" class="dropdown-item">
+                        <span class="dropdown-icon">✏️</span> <span data-i18n="editor">Editor</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('shop'); return false;" class="dropdown-item">
+                        <span class="dropdown-icon">🛍️</span> <span data-i18n="shop">Shop</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('contact'); return false;" class="dropdown-item">
+                        <span class="dropdown-icon">ℹ️</span> <span data-i18n="info">Info</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- CART MODAL -->
+            <div id="cartModal" class="modal">
+                <div class="modal-content cart-modal-content">
+                    <span class="close-modal" onclick="closeCartModal()">&times;</span>
+                    <h3 data-i18n="your_cart">Your Cart</h3>
+                    <div id="cartItemsList" class="cart-items-list"></div>
+                    <div class="cart-summary">
+                        <div><span data-i18n="total">Total</span>: <span id="cartTotalAmount">$0.00</span></div>
+                        <div class="cart-actions">
+                            <button onclick="clearCart()" data-i18n="clear">Clear</button>
+                            <button onclick="proceedToCheckout()" data-i18n="checkout">Checkout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOGIN MODAL -->
+            <div id="loginModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal" onclick="closeLoginModal()">&times;</span>
+                    <div class="login-box" style="position: relative;">
+                        <h2 data-i18n="welcome_back">Welcome Back</h2>
+                        <p class="login-subtitle" data-i18n="sign_in_subtitle">Sign in to your FOTOCENTER account</p>
+
+                        <form class="login-form" onsubmit="handleLoginModal(event)">
+                            <div class="form-group">
+                                <label for="modalEmail" data-i18n="email_address">Email Address</label>
+                                <input type="email" id="modalEmail" placeholder="your@email.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="modalPassword" data-i18n="password">Password</label>
+                                <input type="password" id="modalPassword" placeholder="Enter your password" required>
+                            </div>
+
+                            <div class="form-group remember-row">
+                                <label><input type="checkbox" id="rememberMe"> <span data-i18n="remember_me">Remember Me</span></label>
+                                <a href="#" onclick="alert('Password reset flow simulated'); return false;" data-i18n="forgot">Forgot?</a>
+                            </div>
+
+                            <button type="submit" class="login-btn" data-i18n="sign_in">Sign In</button>
+                        </form>
+
+                        <div class="divider">
+                            <span data-i18n="or">or</span>
+                        </div>
+
+                        <div class="social-login">
+                            <button type="button" class="google-btn" onclick="simulateSocialLogin('google')">
+                                <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                </svg>
+                                <span data-i18n="sign_in_google">Sign in with Google</span>
+                            </button>
+                            <button type="button" class="google-btn" onclick="simulateSocialLogin('facebook')" style="margin-top: 10px;">
+                                <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                                    <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                </svg>
+                                <span data-i18n="sign_in_facebook">Sign in with Facebook</span>
+                            </button>
+                        </div>
+
+                        <p class="login-footer"><span data-i18n="no_account">Don't have an account?</span> <a href="#" onclick="navigateTo('signup'); closeLoginModal(); return false;" data-i18n="create_one">Create one</a></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEARCH BAR -->
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text"
+                       class="search-input"
+                       id="searchInput"
+                       placeholder="canvas prints..."
+                       data-i18n="search_placeholder"
+                       autocomplete="off">
+            </div>
+
+            <!-- NAV ACTIONS -->
+            <div class="nav-actions" id="cartHoverContainer">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <a href="#" class="login-link" onclick="openLoginModal(); return false;"><span data-i18n="log_in">Log in</span></a>
+                    <a href="#" class="register-link" onclick="navigateTo('signup'); return false;"><span data-i18n="register_here">Register here!</span></a>
+                </div>
+                <div class="cart-hover-wrapper">
+                    <button class="cart-btn" id="cartHoverBtn" onclick="navigateTo('cart-page'); return false;">
+                        <span class="cart-icon-wrapper">
+                            <img src="images2/cart.png" alt="Cart" class="cart-icon-img">
+                            <span id="cartCount" class="cart-badge">0</span>
+                        </span>
+                        <span data-i18n="cart">Cart</span>
+                    </button>
+                    <div class="cart-hover-dropdown" id="cartHoverDropdown">
+                        <div class="cart-hover-loading"><span data-i18n="loading_cart">Loading cart...</span></div>
+                    </div>
+                </div>
+
+                <!-- LANGUAGE BUTTON -->
+                <div class="language-dropdown" id="languageDropdown">
+                    <button class="language-btn" id="languageBtn">
+                        <img class="flag-img" src="https://flagcdn.com/24x18/us.png" alt="USA">
+                        <span class="language-name">USA</span>
+                        <span class="currency-code">USD</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="language-menu" id="languageMenu"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- SHOP PAGE -->
+        <section id="shop" class="page">
+            <div class="container">
+                <h2 data-i18n="shop">Shop</h2>
+                <p data-i18n="shop_description">Explore our personalized photo products.</p>
+                <div id="searchResultsInfo" class="search-results-info" style="display: none;">
+                    <span id="searchResultsText"></span>
+                    <button id="clearSearchBtn" onclick="clearSearch()">✕ <span data-i18n="clear">Clear</span></button>
+                </div>
+                <div id="shopProductsGrid" class="products-grid"></div>
+            </div>
+        </section>
+
+        <!-- CART PAGE -->
+        <section id="cart-page" class="page">
+            <div class="container">
+                <div class="cart-header">
+                    <h2>🛒 <span data-i18n="shopping_cart">SHOPPING CART</span></h2>
+                    <button class="continue-shopping-btn" onclick="navigateTo('shop')">← <span data-i18n="continue_shopping">Continue Shopping</span></button>
+                </div>
+
+                <!-- Cart Tabs -->
+                <div class="cart-tabs">
+                    <button class="cart-tab active" data-tab="all" data-i18n="all">ALL</button>
+                    <button class="cart-tab" data-tab="printing" data-i18n="order_history">Order History</button>
+                    <button class="cart-tab" data-tab="toship" data-i18n="to_ship">To Ship</button>
+                    <button class="cart-tab" data-tab="completed" data-i18n="completed">Completed</button>
+                    <button class="cart-tab" data-tab="cancel" data-i18n="cancel_return">Cancel/Return</button>
+                </div>
+
+                <!-- Cart Items Container -->
+                <div id="cartItemsContainer" class="cart-items-container">
+                    <div class="cart-loading"><span data-i18n="loading_cart">Loading cart items...</span></div>
+                </div>
+
+                <!-- Select All Bar -->
+                <div class="select-all-bar" id="selectAllBar">
+                    <label class="select-all-checkbox">
+                        <input type="checkbox" id="selectAllCheckbox">
+                        <span><span data-i18n="select_all">Select All</span> (<span id="selectedCount">0</span>/<span id="totalCount">0</span> <span data-i18n="items">items</span>)</span>
+                    </label>
+                    <button class="delete-selected-btn" id="deleteSelectedBtn" onclick="deleteSelectedItems()">🗑️ <span data-i18n="delete_selected">Delete Selected</span></button>
+                </div>
+
+                <!-- Sticky Bottom Bar -->
+                <div class="cart-sticky-bottom">
+                    <div class="cart-total-info">
+                        <span><span data-i18n="total">Total</span> (<span id="selectedItemsCount">0</span> <span data-i18n="selected_items">selected items</span>):</span>
+                        <span class="cart-total-amount" id="cartTotalSelected">$0.00</span>
+                    </div>
+                    <button class="complete-order-btn" id="completeOrderBtn" onclick="processOrderFromCart()">
+                        ✅ <span data-i18n="complete_order">COMPLETE ORDER</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SIGNUP PAGE -->
+        <section id="signup" class="page">
+            <div class="login-container">
+                <div class="login-box" style="position: relative;">
+                    color: var(--accent);
+                    <h2 data-i18n="create_account">Create Account</h2>
+                    <p class="login-subtitle" data-i18n="join_today">Join FOTOCENTER today</p>
+
+                    <form class="login-form" onsubmit="handleSignUp(event)">
+                        <div class="form-group">
+                            <label for="signupName" data-i18n="full_name">Full Name</label>
+                            <input type="text" id="signupName" placeholder="Your full name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="signupEmail" data-i18n="email_address">Email Address</label>
+                            <input type="email" id="signupEmail" placeholder="your@email.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="signupPassword" data-i18n="password">Password</label>
+                            <input type="password" id="signupPassword" placeholder="Create a password" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="signupConfirm" data-i18n="confirm_password">Confirm Password</label>
+                            <input type="password" id="signupConfirm" placeholder="Confirm your password" required>
+                        </div>
+
+                        <button type="submit" class="login-btn" data-i18n="create_account">Create Account</button>
+                    </form>
+
+                    <div class="divider">
+                        <span data-i18n="or">or</span>
+                    </div>
+
+                    <button class="google-btn" onclick="signUpWithGoogle()">
+                        <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                        <span data-i18n="sign_up_google">Sign up with Google</span>
+                    </button>
+
+                    <p class="login-footer"><span data-i18n="have_account">Already have an account?</span> <a href="#" onclick="openLoginModal(); return false;" data-i18n="sign_in">Sign in</a></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOMEPAGE -->
+        <section id="home" class="page active">
+            <header class="hero">
+                <div class="hero-content">
+                    <h2 data-i18n="welcome">Welcome to FOTOCENTER PH</h2>
+                    <p data-i18n="tagline">Paper copies for your digital photos</p>
+                </div>
+                <div class="hero-icon-grid">
+                    <a href="#" class="hero-icon-item" onclick="navigateTo('coming-photocards'); return false;">
+                        <div class="hero-icon-circle">
+                            <img src="images2/photo.png" alt="Photo Cards">
+                        </div>
+                        <span class="hero-icon-label" data-i18n="photo_cards">Photo Cards</span>
+                    </a>
+                    <a href="#" class="hero-icon-item" onclick="navigateTo('coming-calendar'); return false;">
+                        <div class="hero-icon-circle">
+                            <img src="images2/calendars.png" alt="Calendar">
+                        </div>
+                        <span class="hero-icon-label" data-i18n="calendars">Calendar</span>
+                    </a>
+                    <a href="#" class="hero-icon-item" onclick="navigateTo('coming-photobook'); return false;">
+                        <div class="hero-icon-circle">
+                            <img src="images2/bookphoto.png" alt="Photo Book">
+                        </div>
+                        <span class="hero-icon-label" data-i18n="photo_book">Photo Book</span>
+                    </a>
+                    <a href="#" class="hero-icon-item" onclick="navigateTo('coming-canvas'); return false;">
+                        <div class="hero-icon-circle">
+                            <img src="images2/canva.png" alt="Canvas">
+                        </div>
+                        <span class="hero-icon-label" data-i18n="canvas">Canvas</span>
+                    </a>
+                    <a href="#" class="hero-icon-item" onclick="navigateTo('coming-mousepads'); return false;">
+                        <div class="hero-icon-circle">
+                            <img src="images2/padmouse.png" alt="Mouse Pads">
+                        </div>
+                        <span class="hero-icon-label" data-i18n="mouse_pads">Mouse Pads</span>
+                    </a>
+                    <a href="#" class="hero-icon-item" onclick="navigateTo('coming-doublecards'); return false;">
+                        <div class="hero-icon-circle">
+                            <img src="images2/doublecards.png" alt="Double Cards">
+                        </div>
+                        <span class="hero-icon-label" data-i18n="double_cards">Double Cards</span>
+                    </a>
+                </div>
+            </header>
+
+            <!-- FIXED SLIDESHOW SECTION WITH CLICKABLE SLIDES -->
+            <section class="slideshow-section">
+                <div class="container">
+                    <div class="slideshow-container" id="productSlideshow">
+                        <button class="slideshow-arrow arrow-left" id="slideshowPrev" aria-label="Previous slide">&#10094;</button>
+                        <div class="slides-wrapper" id="slidesWrapper">
+                            <div class="slides-track" id="slidesTrack"></div>
+                            <div class="slideshow-controls">
+                                <div class="slideshow-dots" id="slideshowDots"></div>
+                                <button class="slideshow-pause" id="slideshowPause" aria-label="Pause slideshow">⏸️</button>
+                            </div>
+                        </div>
+                        <button class="slideshow-arrow arrow-right" id="slideshowNext" aria-label="Next slide">&#10095;</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Video Section -->
+            <section class="home-content-section">
+                <div class="container">
+                    <div class="video-wrapper">
+                        <iframe width="100%" height="700" src="https://www.youtube.com/embed/RuXa_yxZMGI?autoplay=1&loop=1&playlist=RuXa_yxZMGI&mute=1&rel=0" title="FOTOCENTER Tutorial" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+
+                    <!-- Two Column Text Section -->
+                    <div class="text-columns">
+                        <div class="text-card left-card">
+                            <h2 class="card-heading"><span data-i18n="your">Your</span> <span class="memories-word" data-i18n="memories">MEMORIES</span> <span data-i18n="deserve_more">deserve more than just a screen.</span></h2>
+                            <p class="card-subheading" data-i18n="help_transform">We help you transform your favorite digital moments into:</p>
+                            <ul class="card-list">
+                                <li data-i18n="stunning_cards">• Stunning photo cards for any occasion</li>
+                                <li data-i18n="personalized_calendars">• Personalized calendars to cherish all year</li>
+                                <li data-i18n="beautiful_canvas">• Beautiful canvas prints for your walls</li>
+                                <li data-i18n="and_more">• And more...</li>
+                            </ul>
+                        </div>
+
+                        <div class="text-card right-card">
+                            <h2 class="card-heading"><span data-i18n="turn_your">Turn your</span> <span class="memories-word" data-i18n="memories">MEMORIES</span> <span data-i18n="into_art">into art you can hold.</span></h2>
+                            <ul class="card-list check-list">
+                                <li data-i18n="upload_any">✓ Upload any photo</li>
+                                <li data-i18n="edit_tools">✓ Edit with our easy-to-use tools</li>
+                                <li data-i18n="choose_six">✓ Choose from 6 product types</li>
+                                <li data-i18n="high_quality">✓ Get high-quality prints delivered</li>
+                            </ul>
+                            <p class="card-footer-text" data-i18n="simple_editor">All with our simple online editor.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- PRODUCT DETAIL PAGE -->
+        <section id="product-page" class="page">
+            <div class="container product-detail-container">
+                <button class="back-btn" id="productBackBtn" onclick="navigateTo('home'); return false;">← <span data-i18n="back_to_home">Back to Home</span></button>
+
+                <div class="product-detail-layout">
+                    <div class="product-left">
+                        <div class="main-image-container">
+                            <img id="productMainImage" src="" alt="Product" class="main-product-image">
+                        </div>
+                        <div class="thumbnail-row" id="productThumbnails"></div>
+                    </div>
+
+                    <div class="product-right">
+                        <div class="specs-panel">
+                            <h2 id="productName">Photo Cards</h2>
+                            <div class="product-price" id="productPrice">$0.00</div>
+
+                            <div class="sizes-section">
+                                <h4 data-i18n="available_sizes">Available Sizes:</h4>
+                                <div id="productSizes" class="sizes-list"></div>
+                            </div>
+
+                            <div class="paper-types-section">
+                                <h4 data-i18n="paper_types">Paper Types:</h4>
+                                <div id="productPaperTypes" class="paper-list"></div>
+                            </div>
+
+                            <button class="open-editor-btn" id="openEditorBtn" data-i18n="open_in_editor">OPEN IN EDITOR</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="description-box">
+                    <div class="description-content">
+                        <p id="productDescription">Product description goes here.</p>
+                    </div>
+                    <div class="decorative-icon animated-icon" id="productIcon">📅</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="product-detail" class="page">
+            <div class="detail-container">
+                <button class="back-btn" onclick="navigateTo('home'); return false;">← <span data-i18n="back">Back</span></button>
+                <div id="detail-content"></div>
+            </div>
+        </section>
+
+        <section id="photos" class="page">
+            <div class="container">
+                <div class="photos-header">
+                    <h2 data-i18n="photo_upload_editing">Photo Upload & Editing</h2>
+                    <p data-i18n="upload_description">Upload your photos and customize them before ordering prints.</p>
+                    <div class="mode-selector">
+                        <button id="uploadModeBtn" class="mode-btn active" onclick="switchPhotoMode('upload')" data-i18n="upload_photos">Upload Photos</button>
+                        <button id="printModeBtn" class="mode-btn" onclick="switchPhotoMode('prints')" data-i18n="order_prints">Order Prints</button>
+                    </div>
+                </div>
+
+                <!-- Upload & Editing Section -->
+                <div id="uploadView" class="upload-view active-view">
+                    <div class="upload-section">
+                        <div class="upload-box" id="dropArea">
+                            <input type="file" id="photoInput" accept="image/*" multiple class="file-input">
+                            <label for="photoInput" class="upload-label">
+                                <div class="upload-icon">📸</div>
+                                <h3 data-i18n="upload_photos">Upload Your Photos</h3>
+                                <p data-i18n="click_browse">Click to browse or drag and drop images here</p>
+                                <p class="file-types" data-i18n="file_types">Supports JPG, PNG, GIF up to 10MB each</p>
+                                <div class="upload-stats">
+                                    <p><span data-i18n="uploaded">Uploaded</span>: <span id="uploadCount">0</span> <span data-i18n="photos">photos</span></p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div id="uploadedImages" class="uploaded-images"></div>
+
+                        <div id="editorContainer" class="editor-container">
+                            <div class="editor-header">
+                                <div class="editor-header-content">
+                                    <h3 class="editor-title" data-i18n="photo_editor">PHOTO EDITOR</h3>
+                                    <div class="editor-header-right">
+                                        <div class="product-dropdown-container">
+                                            <button class="product-dropdown-btn" id="productDropdownBtn"><span data-i18n="products">Products</span> ▼</button>
+                                            <div class="product-dropdown-menu" id="productDropdownMenu"></div>
+                                        </div>
+                                        <div class="current-product-badge" id="currentProductBadge">
+                                            <span class="badge-text" data-i18n="none">None</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="editor-subtitle" data-i18n="select_photo">Select a photo to edit from above</p>
+                            </div>
+
+                            <div class="editor-main">
+                                <div class="canvas-container">
+                                    <canvas id="photoCanvas"></canvas>
+                                    <div class="canvas-overlay" id="canvasOverlay">
+                                        <p data-i18n="select_photo_start">Select a photo to start editing</p>
+                                    </div>
+                                </div>
+
+                                <div class="editor-sidebar">
+                                    <div class="editor-tools">
+                                        <h4 data-i18n="edit_tools">Edit Tools</h4>
+
+                                        <div class="tool-group">
+                                            <label data-i18n="brightness">Brightness</label>
+                                            <div class="slider-container">
+                                                <button class="slider-btn minus" onclick="adjustBrightness(-10)">-</button>
+                                                <input type="range" id="brightnessSlider" min="0" max="200" value="100" class="slider">
+                                                <button class="slider-btn plus" onclick="adjustBrightness(10)">+</button>
+                                                <span id="brightnessValue">100%</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="tool-group">
+                                            <label data-i18n="contrast">Contrast</label>
+                                            <div class="slider-container">
+                                                <button class="slider-btn minus" onclick="adjustContrast(-10)">-</button>
+                                                <input type="range" id="contrastSlider" min="0" max="200" value="100" class="slider">
+                                                <button class="slider-btn plus" onclick="adjustContrast(10)">+</button>
+                                                <span id="contrastValue">100%</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="tool-group">
+                                            <label data-i18n="saturation">Saturation</label>
+                                            <div class="slider-container">
+                                                <button class="slider-btn minus" onclick="adjustSaturation(-10)">-</button>
+                                                <input type="range" id="saturationSlider" min="0" max="200" value="100" class="slider">
+                                                <button class="slider-btn plus" onclick="adjustSaturation(10)">+</button>
+                                                <span id="saturationValue">100%</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="tool-group">
+                                            <label data-i18n="rotate_flip">Rotate & Flip</label>
+                                            <div class="button-group">
+                                                <button class="tool-btn" onclick="rotateImage(-90)" data-i18n="rotate_left">↺ 90°</button>
+                                                <button class="tool-btn" onclick="rotateImage(90)" data-i18n="rotate_right">↻ 90°</button>
+                                                <button class="tool-btn" onclick="flipHorizontal()" data-i18n="flip_h">⬌ Flip H</button>
+                                                <button class="tool-btn" onclick="flipVertical()" data-i18n="flip_v">⬍ Flip V</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="tool-group">
+                                            <label data-i18n="filters">Filters</label>
+                                            <div class="filters-grid">
+                                                <button class="filter-btn" onclick="applyFilter('none')" data-i18n="none">None</button>
+                                                <button class="filter-btn" onclick="applyFilter('grayscale')" data-i18n="grayscale">Grayscale</button>
+                                                <button class="filter-btn" onclick="applyFilter('sepia')" data-i18n="sepia">Sepia</button>
+                                                <button class="filter-btn" onclick="applyFilter('vintage')" data-i18n="vintage">Vintage</button>
+                                                <button class="filter-btn" onclick="applyFilter('cool')" data-i18n="cool">Cool</button>
+                                                <button class="filter-btn" onclick="applyFilter('warm')" data-i18n="warm">Warm</button>
+                                                <button class="filter-btn" onclick="applyFilter('vivid')" data-i18n="vivid">Vivid</button>
+                                                <button class="filter-btn" onclick="applyFilter('noir')" data-i18n="noir">Noir</button>
+                                                <button class="filter-btn" onclick="applyFilter('lomo')" data-i18n="lomo">Lomo</button>
+                                                <button class="filter-btn" onclick="applyFilter('dreamy')" data-i18n="dreamy">Dreamy</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="tool-group">
+                                            <label data-i18n="advanced_tools">Advanced Tools</label>
+                                            <div class="button-group">
+                                                <button class="tool-btn" onclick="toggleCrop()" data-i18n="crop">Crop</button>
+                                                <button class="tool-btn" onclick="toggleTextOverlay()" data-i18n="add_text">Add Text</button>
+                                                <button class="tool-btn" onclick="reduceRedEye()" data-i18n="red_eye">Red-Eye</button>
+                                                <button class="tool-btn" onclick="autoEnhance()" data-i18n="auto_enhance">Auto Enhance</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="action-buttons">
+                                        <button id="undoBtn" class="action-btn" onclick="undo()" data-i18n="undo">Undo</button>
+                                        <button id="redoBtn" class="action-btn" onclick="redo()" data-i18n="redo">Redo</button>
+                                        <button id="resetBtn" class="action-btn reset-btn" onclick="resetImage()" data-i18n="reset_all">Reset All</button>
+                                        <button id="saveBtn" class="action-btn save-btn" onclick="saveImage()" data-i18n="save_edits">Save Edits</button>
+                                        <button id="downloadBtn" class="action-btn download-btn" onclick="downloadImage()" data-i18n="download">Download</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PRINT OPTIONS -->
+                            <div class="editor-footer">
+                                <h4 data-i18n="print_options">Print Options</h4>
+                                <div class="print-options-unified">
+                                    <div class="advanced-section">
+                                        <h5 data-i18n="paper_type">Paper Type</h5>
+                                        <div class="paper-type-grid">
+                                            <label class="paper-type-btn">
+                                                <input type="radio" name="paperType" value="standard" checked onchange="calculatePrice()">
+                                                <span class="paper-label" data-i18n="standard">Standard</span>
+                                                <span class="paper-price" data-usd="0">+$0.00</span>
+                                            </label>
+                                            <label class="paper-type-btn">
+                                                <input type="radio" name="paperType" value="glossy" onchange="calculatePrice()">
+                                                <span class="paper-label" data-i18n="glossy">Glossy</span>
+                                                <span class="paper-price" data-usd="0.18">+$0.18</span>
+                                            </label>
+                                            <label class="paper-type-btn">
+                                                <input type="radio" name="paperType" value="matte" onchange="calculatePrice()">
+                                                <span class="paper-label" data-i18n="matte">Matte</span>
+                                                <span class="paper-price" data-usd="0.27">+$0.27</span>
+                                            </label>
+                                            <label class="paper-type-btn">
+                                                <input type="radio" name="paperType" value="premium" onchange="calculatePrice()">
+                                                <span class="paper-label" data-i18n="premium">Premium</span>
+                                                <span class="paper-price" data-usd="0.45">+$0.45</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="advanced-section">
+                                        <h5 data-i18n="size_mode">Size Mode</h5>
+                                        <div class="size-mode-grid">
+                                            <label class="size-mode-btn">
+                                                <input type="radio" name="sizeMode" value="fill" checked onchange="calculatePrice()">
+                                                <span data-i18n="fill">Fill</span>
+                                            </label>
+                                            <label class="size-mode-btn">
+                                                <input type="radio" name="sizeMode" value="fit" onchange="calculatePrice()">
+                                                <span data-i18n="fit">Fit</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="advanced-section">
+                                        <h5 data-i18n="size">Size</h5>
+                                        <div class="unit-selector">
+                                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                                                <span style="font-weight: 600; color: var(--text);" data-i18n="size_unit">Size Unit:</span>
+                                                <span style="font-weight: 500; color: var(--accent);" data-i18n="inches_default">Inches (default)</span>
+                                                <div style="display: flex; gap: 1rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
+                                                        <input type="radio" name="unitSelector" value="cm" onchange="changeUnit('cm')">
+                                                        <span data-i18n="cm">cm</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
+                                                        <input type="radio" name="unitSelector" value="mm" onchange="changeUnit('mm')">
+                                                        <span data-i18n="mm">mm</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="advanced-sizes-grid" id="sizeOptionsContainer"></div>
+                                        <div id="customSizeContainer" style="display: none; margin-top: 1rem;">
+                                            <div class="custom-size-row">
+                                                <input type="number" id="customWidth" class="custom-size-input" min="1" max="100" value="8" placeholder="W">
+                                                <span class="size-separator">x</span>
+                                                <input type="number" id="customHeight" class="custom-size-input" min="1" max="100" value="10" placeholder="H">
+                                                <select id="customUnit" class="custom-unit-select">
+                                                    <option value="inches">in</option>
+                                                    <option value="cm">cm</option>
+                                                    <option value="mm">mm</option>
+                                                </select>
+                                            </div>
+                                            <p class="size-note" data-i18n="price_by_area">Price calculated by area</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="advanced-section">
+                                        <h5 data-i18n="quantity">Quantity</h5>
+                                        <div class="quantity-controls advanced">
+                                            <button type="button" class="quantity-btn-small" onclick="updateQuantity(-1)">−</button>
+                                            <span class="quantity-number" id="quantityDisplay">1</span>
+                                            <button type="button" class="quantity-btn-small" onclick="updateQuantity(1)">+</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="price-breakdown-modern">
+                                        <div class="breakdown-item">
+                                            <span data-i18n="base_price">Base Price:</span>
+                                            <span id="basePrice" data-usd="0.45">$0.45</span>
+                                        </div>
+                                        <div class="breakdown-item">
+                                            <span data-i18n="paper_type_price">Paper Type Price:</span>
+                                            <span id="paperUpgradePrice" data-usd="0">$0.00</span>
+                                        </div>
+                                        <div class="breakdown-item">
+                                            <span data-i18n="quantity_price">Quantity Price:</span>
+                                            <span id="quantityMultiplier" data-usd="0.45">$0.45</span>
+                                        </div>
+                                        <div class="breakdown-total-modern">
+                                            <span data-i18n="total">TOTAL:</span>
+                                            <span id="advancedTotalPrice" data-usd="0.45">$0.45</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button id="addToCart" class="add-cart-btn" onclick="addPhotoToCart()">
+                                    <span class="cart-icon">🛒</span> <span data-i18n="add_to_cart">Add to Cart</span> - <span id="finalPrice" data-usd="0.45">$0.45</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="printsView" class="prints-view" style="display: none;">
+                    <div class="print-products-grid" id="printProductsGrid"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cards" class="page">
+            <div class="container">
+                <h2 data-i18n="photo_cards">Photo Cards</h2>
+                <p data-i18n="cards_description">Create personalized greeting cards for every occasion.</p>
+            </div>
+        </section>
+
+        <section id="calendars" class="page">
+            <div class="container">
+                <h2 data-i18n="custom_calendars">Custom Calendars</h2>
+                <p data-i18n="calendars_description">Create personalized calendars with your photos.</p>
+            </div>
+        </section>
+
+        <section id="photobook" class="page">
+            <div class="container">
+                <h2 data-i18n="photo_book">Photo Book</h2>
+                <p data-i18n="photobook_description">Unleash your creativity with our photo books.</p>
+            </div>
+        </section>
+
+        <section id="gifts" class="page">
+            <div class="container">
+                <h2 data-i18n="photo_gifts">Photo Gifts</h2>
+                <p data-i18n="gifts_description">Canvas, mouse pads and other photo gifts.</p>
+            </div>
+        </section>
+
+        <section id="canvas" class="page">
+            <div class="container">
+                <h2 data-i18n="canvas">Canvas</h2>
+                <p data-i18n="canvas_description">Your favorite photo mounted on canvas.</p>
+            </div>
+        </section>
+
+        <!-- COMING SOON PAGES -->
+        <section id="coming-photocards" class="page">
+            <div class="coming-soon-container">
+                <div class="coming-soon-icon"><img src="images2/photo.png" alt="Photo Cards"></div>
+                <h2 data-i18n="photo_cards">Photo Cards</h2>
+                <p class="coming-soon-text" data-i18n="coming_soon">COMING SOON</p>
+                <button class="back-home-btn" onclick="navigateTo('home'); return false;">← <span data-i18n="back_to_home">Back to Home</span></button>
+            </div>
+        </section>
+
+        <section id="coming-calendar" class="page">
+            <div class="coming-soon-container">
+                <div class="coming-soon-icon"><img src="images2/calendars.png" alt="Calendar"></div>
+                <h2 data-i18n="calendars">Calendar</h2>
+                <p class="coming-soon-text" data-i18n="coming_soon">COMING SOON</p>
+                <button class="back-home-btn" onclick="navigateTo('home'); return false;">← <span data-i18n="back_to_home">Back to Home</span></button>
+            </div>
+        </section>
+
+        <section id="coming-photobook" class="page">
+            <div class="coming-soon-container">
+                <div class="coming-soon-icon"><img src="images2/bookphoto.png" alt="Photo Book"></div>
+                <h2 data-i18n="photo_book">Photo Book</h2>
+                <p class="coming-soon-text" data-i18n="coming_soon">COMING SOON</p>
+                <button class="back-home-btn" onclick="navigateTo('home'); return false;">← <span data-i18n="back_to_home">Back to Home</span></button>
+            </div>
+        </section>
+
+        <section id="coming-canvas" class="page">
+            <div class="coming-soon-container">
+                <div class="coming-soon-icon"><img src="images2/canva.png" alt="Canvas"></div>
+                <h2 data-i18n="canvas">Canvas</h2>
+                <p class="coming-soon-text" data-i18n="coming_soon">COMING SOON</p>
+                <button class="back-home-btn" onclick="navigateTo('home'); return false;">← <span data-i18n="back_to_home">Back to Home</span></button>
+            </div>
+        </section>
+
+        <section id="coming-mousepads" class="page">
+            <div class="coming-soon-container">
+                <div class="coming-soon-icon"><img src="images2/padmouse.png" alt="Mouse Pads"></div>
+                <h2 data-i18n="mouse_pads">Mouse Pads</h2>
+                <p class="coming-soon-text" data-i18n="coming_soon">COMING SOON</p>
+                <button class="back-home-btn" onclick="navigateTo('home'); return false;">← <span data-i18n="back_to_home">Back to Home</span></button>
+            </div>
+        </section>
+
+        <section id="coming-doublecards" class="page">
+            <div class="coming-soon-container">
+                <div class="coming-soon-icon"><img src="images2/doublecards.png" alt="Double Cards"></div>
+                <h2 data-i18n="double_cards">Double Cards</h2>
+                <p class="coming-soon-text" data-i18n="coming_soon">COMING SOON</p>
+                <button class="back-home-btn" onclick="navigateTo('home'); return false;">← <span data-i18n="back_to_home">Back to Home</span></button>
+            </div>
+        </section>
+
+        <section id="contact" class="page">
+            <div class="container contact-info">
+                <h2 data-i18n="fotocenter_branch">FOTOCENTER PH BRANCH</h2>
+                <div class="contact-details">
+                    <p><strong data-i18n="address">Address:</strong> <span data-i18n="address_value">St. Agatha Homes, Malolos, Bulacan</span></p>
+                    <p><strong data-i18n="phone">Phone:</strong> <span data-i18n="phone_value">(+63) 929 725 2291</span></p>
+                    <p><strong data-i18n="email">Email:</strong> <a href="mailto:kyle.baltazar@fotocenter.se">kyle.baltazar@fotocenter.se</a></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-icon">✅</div>
+            <h3 data-i18n="photo_added">Photo Added to Cart!</h3>
+            <p data-i18n="photo_added_message">Your edited photo has been successfully added to your shopping cart.</p>
+            <div class="modal-actions">
+                <button class="modal-btn continue-btn" onclick="closeModal()" data-i18n="continue_editing">Continue Editing</button>
+                <button class="modal-btn cart-view-btn" onclick="navigateTo('cart-page')" data-i18n="view_cart">View Cart</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content cart-modal">
+            <span class="close-modal" onclick="closeCartModal()">&times;</span>
+            <h3 data-i18n="your_shopping_cart">Your Shopping Cart</h3>
+            <div class="cart-items" id="cartItemsList"></div>
+            <div class="cart-summary">
+                <div class="cart-total">
+                    <span data-i18n="total">Total:</span>
+                    <span id="cartTotalAmount">$0.00</span>
+                </div>
+                <div class="cart-actions">
+                    <button class="modal-btn continue-btn" onclick="closeCartModal()" data-i18n="continue_shopping">Continue Shopping</button>
+                    <button class="modal-btn checkout-btn" onclick="navigateTo('cart-page'); closeCartModal();" data-i18n="view_cart_page">View Cart Page</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Success Modal -->
+    <div id="orderSuccessModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="document.getElementById('orderSuccessModal').style.display='none'">&times;</span>
+            <div class="modal-icon">📁</div>
+            <h3 data-i18n="order_submitted">Order Submitted Successfully!</h3>
+            <div id="orderSuccessMessage" style="text-align: left; margin: 1.5rem 0; line-height: 1.8; white-space: pre-line;"></div>
+            <div class="modal-actions">
+                <button class="modal-btn receipt-download-btn" onclick="downloadReceipt()" style="background: linear-gradient(135deg, #ff6b35, #ff8f5e); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">📄 Download Receipt (PDF)</button>
+                <button class="modal-btn continue-btn" onclick="document.getElementById('orderSuccessModal').style.display='none'" data-i18n="ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDITOR WELCOME POPUP - ADDED HERE -->
+    <div id="editorWelcomePopup" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <span class="close-modal" onclick="closeEditorWelcome()">&times;</span>
+            <div class="modal-icon" style="font-size: 4rem; margin-bottom: 1rem;">🎨</div>
+            <h3 style="color: var(--accent); margin-bottom: 1rem;">Welcome to the Photo Editor!</h3>
+            <div style="margin: 1.5rem 0; text-align: left;">
+                <p style="margin-bottom: 1rem; font-size: 1.1rem;">✨ <strong>Here's how to get started:</strong></p>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="background: var(--accent); color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">1</span>
+                        <span><strong>Upload your images</strong> by clicking the upload box above</span>
+                    </li>
+                    <li style="margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="background: var(--accent); color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">2</span>
+                        <span><strong>Select a photo</strong> from the gallery below</span>
+                    </li>
+                    <li style="margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="background: var(--accent); color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">3</span>
+                        <span><strong>Edit your photo</strong> using the tools on the right</span>
+                    </li>
+                    <li style="margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="background: var(--accent); color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">4</span>
+                        <span><strong>Add to cart</strong> when you're done!</span>
+                    </li>
+                </ul>
+            </div>
+            <p style="color: var(--text-muted); font-style: italic; margin: 1rem 0;">You're currently editing: <strong id="welcomeProductName">Photo Cards</strong></p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeEditorWelcome()" class="modal-btn continue-btn" style="background: var(--accent); color: white; padding: 0.75rem 2rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Got it, let's start!</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3 data-i18n="fotocenter_branch">FOTOCENTER PH BRANCH</h3>
+                <p><span data-i18n="address">Address</span>: <span data-i18n="address_value">St. Agatha Homes, Malolos, Bulacan</span></p>
+                <p><span data-i18n="phone">Phone</span>: (+63) 929 725 2291<br><span data-i18n="email">Email</span>: <a href="mailto:kyle.baltazar@fotocenter.se">kyle.baltazar@fotocenter.se</a></p>
+            </div>
+            <div class="footer-section">
+                <h3 data-i18n="menu">Menu</h3>
+                <ul class="footer-links">
+                    <li><a href="#" onclick="navigateTo('home'); return false;" data-i18n="home">Home</a></li>
+                    <li><a href="#" onclick="navigateTo('photos'); return false;" data-i18n="photos">Photos</a></li>
+                    <li><a href="#" onclick="navigateTo('cards'); return false;" data-i18n="photo_cards">Photo Cards</a></li>
+                    <li><a href="#" onclick="navigateTo('calendars'); return false;" data-i18n="calendars">Calendars</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3 data-i18n="terms">Terms</h3>
+                <ul class="footer-links">
+                    <li><a href="#" data-i18n="terms_of_use">Terms of Use</a></li>
+                    <li><a href="#" data-i18n="payment_terms">Payment Terms</a></li>
+                    <li><a href="#" data-i18n="cookie_details">Cookie Details</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p data-i18n="copyright">© Powered by FOTOCENTER. By continuing to use our website we assume you agree to the use of cookies.</p>
+        </div>
+    </footer>
+
+    <!-- Reviews Carousel -->
+    <section class="reviews-section">
+        <div class="container">
+            <h3 data-i18n="customer_reviews">Customer Reviews</h3>
+            <div class="review-carousel">
+                <button class="carousel-nav left" onclick="prevReview()">◀</button>
+                <div id="reviewsContainer" class="reviews-container"></div>
+                <button class="carousel-nav right" onclick="nextReview()">▶</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chat Widget -->
+    <div id="chatWidget" class="chat-widget">
+        <div id="chatBox" class="chat-box">
+            <div class="chat-header">
+                <h3 data-i18n="support">FOTOCENTER Support</h3>
+                <button class="chat-close" onclick="toggleChat()">✕</button>
+            </div>
+            <div class="chat-faq-bar" id="chatFaqBar">
+                <div class="faq-scroll-container">
+                    <div class="faq-items">
+                        <div class="faq-item" onclick="selectFaqQuestion('pricing')"><span class="faq-icon">💰</span><span class="faq-text" data-i18n="pricing">Pricing</span></div>
+                        <div class="faq-item" onclick="selectFaqQuestion('delivery')"><span class="faq-icon">🚚</span><span class="faq-text" data-i18n="delivery">Delivery</span></div>
+                        <div class="faq-item" onclick="selectFaqQuestion('upload')"><span class="faq-icon">📤</span><span class="faq-text" data-i18n="upload">Upload</span></div>
+                        <div class="faq-item" onclick="selectFaqQuestion('quality')"><span class="faq-icon">✨</span><span class="faq-text" data-i18n="quality">Quality</span></div>
+                        <div class="faq-item" onclick="selectFaqQuestion('editing')"><span class="faq-icon">🎨</span><span class="faq-text" data-i18n="editing">Editing</span></div>
+                        <div class="faq-item" onclick="selectFaqQuestion('payment')"><span class="faq-icon">💳</span><span class="faq-text" data-i18n="payment">Payment</span></div>
+                        <div class="faq-item" onclick="selectFaqQuestion('sizes')"><span class="faq-icon">📏</span><span class="faq-text" data-i18n="sizes">Sizes</span></div>
+                        <div class="faq-item" onclick="selectFaqQuestion('refund')"><span class="faq-icon">↩️</span><span class="faq-text" data-i18n="refund">Refunds</span></div>
+                    </div>
+                </div>
+                <div class="faq-scroll-indicator left">‹</div>
+                <div class="faq-scroll-indicator right">›</div>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="Type your message..." class="chat-input">
+                <button onclick="sendMessage()" class="chat-send-btn" data-i18n="send">Send</button>
+            </div>
+        </div>
+        <button id="chatToggleBtn" class="chat-toggle-btn" onclick="toggleChat()" title="Chat with us">
+            <img src="https://tse2.mm.bing.net/th/id/OIP.Il1NAN2piMWTFt8ZUoG8cwHaHa?rs=1&pid=ImgDetMain&o=7&rm=3" alt="Chat" class="chat-icon-img">
+        </button>
+    </div>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="languages.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
