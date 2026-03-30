@@ -5,7 +5,15 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "db:restore": "node server/scripts/restore-backup.js",
+    "db:verify": "node server/scripts/verify-migrations.js",
+    "db:rollback": "node server/scripts/rollback-latest.js",
+    "ci:run": "node ../tools/find-duplicates.js",
+    "migrate": "knex --knexfile knexfile.js migrate:latest --env development",
+    "migrate:test": "knex --knexfile knexfile.js migrate:latest --env test",
+    "migrate:rollback": "knex --knexfile knexfile.js migrate:rollback --env development",
+    "test": "jest --runInBand --testTimeout=20000"
   },
   "author": "fotocenter",
   "license": "MIT",
@@ -17,10 +25,18 @@
     "express-session": "^1.17.3",
     "connect-sqlite3": "^0.9.0",
     "bcryptjs": "^2.4.3",
+    "pdfkit": "^0.13.0",
+    "pdf-lib": "^1.17.1",
     "passport": "^0.6.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-facebook": "^3.0.0"
     ,"dotenv": "^16.0.0"
+  }
+  ,"devDependencies": {
+    "jest": "^29.0.0",
+    "supertest": "^6.3.3",
+    "knex": "^2.5.1",
+    "sqlite3": "^5.1.6"
   }
 }
   
