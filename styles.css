@@ -130,6 +130,18 @@ body {
     align-items: center;
 }
 
+/* Ensure any leftover hamburger markup is hidden (removed per request) */
+/* hamburger styles left intact (removed forced hide) */
+
+/* User dropdown arrow styling (text-only) */
+#userDropdownArrow {
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--text);
+    display: inline-block;
+    padding: 2px 6px;
+}
+
 .login-link {
     color: var(--text);
     text-decoration: none;
@@ -3895,6 +3907,60 @@ button:disabled {
     position: relative;
 }
 
+/* Language dropdown styles */
+.language-dropdown {
+    position: relative;
+}
+
+.language-btn {
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.language-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1200;
+    overflow: hidden;
+}
+
+.language-dropdown.open .language-menu {
+    display: block;
+}
+
+.language-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.language-item:last-child { border-bottom: none; }
+
+.language-item.active {
+    background: #fff0e6;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.language-item .flag-img { width: 24px; height: 18px; object-fit: cover; }
+
+
 .cart-hover-dropdown {
     position: absolute;
     top: 100%;
@@ -5041,6 +5107,88 @@ button:disabled {
 .language-dropdown {
     position: relative;
     margin-left: 0.5rem;
+}
+
+/* Welcome pill styles */
+.welcome-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffffff, #f6f8fa);
+    border: 2px solid rgba(27,58,107,0.12);
+    box-shadow: 0 4px 10px rgba(27,58,107,0.08);
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.welcome-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(27,58,107,0.12);
+}
+
+/* Insert the "Welcome, " prefix via CSS so scripts only set the raw name */
+#userName::before {
+    content: "Welcome, ";
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.user-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 160px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    padding: 6px 0;
+    z-index: 1200;
+}
+
+.user-dropdown-menu a[role="menuitem"] {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text);
+    text-decoration: none;
+}
+
+/* Ensure the welcome container is a positioned ancestor so the absolute dropdown anchors correctly */
+#userWelcomeContainer, .user-welcome {
+    position: relative;
+}
+
+/* Control dropdown visibility via the .open class on the wrapper and use transforms for smooth appearance */
+.user-dropdown-menu {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(0.99);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+    pointer-events: none;
+}
+
+.user-welcome.open .user-dropdown-menu,
+#userWelcomeContainer.open .user-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+/* Rotate caret when open */
+#userWelcomeContainer.open #userDropdownArrow,
+.user-welcome.open #userDropdownArrow {
+    transform: rotate(180deg);
+    transition: transform 0.18s ease;
+}
+
+.user-dropdown-menu a[role="menuitem"]:hover {
+    background: var(--secondary);
 }
 
 .language-btn {
