@@ -122,9 +122,23 @@
 
             <!-- NAV ACTIONS -->
             <div class="nav-actions" id="cartHoverContainer">
-                <div style="display: flex; flex-direction: column; align-items: center;">
+                <!-- Guest links (shown when not authenticated) -->
+                <div id="guestLinks" style="display: flex; flex-direction: column; align-items: center;">
                     <a href="#" class="login-link" onclick="openLoginModal(); return false;"><span data-i18n="log_in">Log in</span></a>
                     <a href="#" class="register-link" onclick="navigateTo('signup'); return false;"><span data-i18n="register_here">Register here!</span></a>
+                </div>
+
+                <!-- User welcome pill (hidden by default, shown when authenticated)
+                     Script expects: #userWelcomeContainer, #userName, #userDropdownTrigger, #userDropdownMenu -->
+                <div id="userWelcomeContainer" class="user-welcome" style="display: none;">
+                    <button id="userDropdownTrigger" class="welcome-pill" aria-haspopup="true" aria-expanded="false">
+                        <span id="userName"></span>
+                        <span id="userDropdownArrow">⏷</span>
+                    </button>
+                    <div id="userDropdownMenu" class="user-dropdown-menu" role="menu" aria-hidden="true">
+                        <a href="#" id="viewProfileMenu" role="menuitem">View profile</a>
+                        <a href="#" id="logoutMenu" role="menuitem">Log out</a>
+                    </div>
                 </div>
                 <div class="cart-hover-wrapper">
                     <button class="cart-btn" id="cartHoverBtn" onclick="navigateTo('cart-page'); return false;">
@@ -141,13 +155,13 @@
 
                 <!-- LANGUAGE BUTTON -->
                 <div class="language-dropdown" id="languageDropdown">
-                    <button class="language-btn" id="languageBtn">
+                <button type="button" class="language-btn" id="languageBtn" aria-haspopup="true" aria-expanded="false">
                         <img class="flag-img" src="https://flagcdn.com/24x18/us.png" alt="USA">
                         <span class="language-name">USA</span>
                         <span class="currency-code">USD</span>
                         <span class="dropdown-arrow">▼</span>
                     </button>
-                    <div class="language-menu" id="languageMenu"></div>
+                    <div class="language-menu" id="languageMenu" role="menu" aria-label="Language selector"></div>
                 </div>
             </div>
         </div>
@@ -164,6 +178,15 @@
                     <button id="clearSearchBtn" onclick="clearSearch()">✕ <span data-i18n="clear">Clear</span></button>
                 </div>
                 <div id="shopProductsGrid" class="products-grid"></div>
+            </div>
+        </section>
+
+        <!-- PROFILE PAGE -->
+        <section id="profile" class="page">
+            <div class="container">
+                <div id="profileContent">
+                    <p>Loading profile...</p>
+                </div>
             </div>
         </section>
 
@@ -929,6 +952,7 @@
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="languages.js"></script>
+    <script src="js/profile-loader.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
