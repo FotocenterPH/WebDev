@@ -1,0 +1,212 @@
+/* Profile specific styles integrated with main stylesheet variables */
+.profile-page { padding: 1rem; }
+/* Override: ensure personal and addresses panels are not rendered as pills (higher specificity) */
+.profile-right .personal-panel, .profile-right .addresses-box { border: none !important; border-radius: 6px !important; box-shadow: none !important; }
+.profile-main { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
+@media (max-width: 800px) { .profile-main { grid-template-columns: 1fr; } }
+.profile-card { background: var(--primary); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; box-shadow: var(--shadow); }
+.avatar-wrap { display:flex; align-items:center; justify-content:center; padding:1rem 0; }
+.avatar-inner { position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center; border: 2px solid var(--accent) !important; border-radius: 50%; overflow: hidden; }
+.avatar-inner img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+/* Make the avatar card border use the accent color to match personal info */
+.profile-left .profile-card { border: 2px solid var(--accent) !important; }
+.avatar-edit { position:absolute; right:6px; bottom:6px; background:var(--secondary); padding:8px; border-radius:8px; border:1px solid var(--border); cursor:pointer; }
+.profile-info { margin-top:0.5rem; }
+.profile-actions { display:flex; gap:0.5rem; margin-top:0.75rem; }
+
+/* Personal and addresses - remove outer pill border (inner border applied to personal-info-row) */
+/* Personal panel has an inner sharper border; addresses keep no outer inner border */
+.personal-panel { border: 2px solid var(--accent) !important; border-radius: 6px !important; padding: 12px !important; background: var(--primary); }
+.addresses-box { border: none; border-radius: 6px; padding: 1rem; background: var(--primary); }
+
+/* Tabs vertical center + larger font */
+.profile-tabs { display:flex; flex-direction:row; align-items:center; justify-content:center; gap:2in; }
+.profile-tab { font-size: 20px; padding: 0.5rem 1rem; background: transparent; border: none; cursor: pointer; color: var(--text); }
+.profile-tab.active { color: var(--accent); font-weight: 700; }
+
+/* Styled pill button for logout and primary actions */
+.logout-text, .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; border: none; padding: 0.5rem 1rem; border-radius: 999px; cursor: pointer; box-shadow: 0 6px 18px rgba(27,58,107,0.14); }
+.logout-text:hover, .btn.primary:hover { transform: translateY(-2px); }
+
+/* Save/cancel smaller spacing when shown */
+.save-btn, .cancel-btn { padding: 0.45rem 0.85rem; }
+.hidden { display:none !important; }
+.addresses-list { margin-top:0.5rem; }
+
+/* Ensure Addresses visually separated from Personal Info */
+.addresses-list { border-top: 1px dashed var(--border); padding-top: 12px; }
+.address-item { display:flex; justify-content:space-between; align-items:center; padding:0.5rem; border-radius:8px; border:1px solid var(--border); margin-bottom:0.5rem; background:var(--secondary); }
+.address-actions button { margin-left:0.5rem; }
+#addressesList .address-item div { display:flex; align-items:center; gap:0.5rem; }
+.addr-badge.default { background:#fff1f0; color:#d94a2b; border:1px solid #f0c6c0; padding:4px 8px; border-radius:4px; font-size:13px; }
+.address-actions .btn-ghost { background:transparent; border:none; color:var(--text); padding:6px 8px; cursor:pointer; }
+.address-actions .btn-ghost:hover { text-decoration:underline; }
+.address-item > div:first-child { max-width: 75%; }
+.address-item > .address-actions { display:flex; gap:0.4rem; align-items:center; }
+.address-item div strong, .address-item div[style] { font-weight:600; font-size:16px; }
+.pc-toast { margin-bottom:6px; }
+.pc-toast-error { border:1px solid rgba(188,36,36,0.16); }
+.pc-toast-success { border:1px solid rgba(43,111,179,0.12); }
+
+/* Accessibility focus styles */
+.address-item:focus {
+    outline: 3px solid rgba(43,111,179,0.18);
+    outline-offset: 2px;
+}
+.active-location { margin-top:1rem; padding:1rem; border-radius:10px; border:1px solid var(--border); background:var(--secondary); }
+#profileMap { width:100%; height:200px; border-radius:8px; border:0; }
+.tab-panel[aria-hidden="true"] { display:none; }
+.tab-panel.active { display:block; }
+
+/* Mobile tweaks: stack address form fields and reduce gaps on small screens */
+@media (max-width: 520px) {
+    .personal-panel { grid-template-columns: 1fr !important; }
+    .personal-panel .info-stack { grid-template-columns: 1fr; }
+    .personal-panel .info-label { text-align: left; padding-right: 0; font-size: 16px; }
+    .personal-panel .info-value { font-size: 16px; }
+    .avatar-inner { width:120px; height:120px; }
+    .profile-card { padding: 0.75rem; }
+    .address-inline-form input { font-size: 15px; padding: 8px; }
+    .profile-tabs { gap: 8px; }
+}
+
+/* Inline message for address form success/error */
+.address-form-msg { transition: opacity 160ms ease-in-out; }
+
+/* Right panel full rounded square border */
+.profile-right-container { border: 2px solid var(--accent); border-radius: 12px; padding: 1.25rem; }
+
+/* Make profile-related borders use a blue outline */
+.profile-card, .profile-right-container, .personal-panel, .address-item, .active-location {
+    border-color: #2b6fb3 !important;
+}
+
+/* Ensure thin borders also use blue where a 1px border is applied */
+.addresses-list { border-top-color: #2b6fb3 !important; }
+.address-item { border: 1px solid #2b6fb3 !important; }
+
+/* Inner border only around personal info rows */
+/* .personal-info-row no longer used; personal-panel encloses all personal info */
+
+/* Ensure logout button aligned right */
+.profile-header { align-items:center; }
+.profile-header .logout-text { margin-left:auto; }
+
+/* ============== PERSONAL INFO CLEAN STYLE ============== */
+.personal-panel {
+    padding: 8px 12px !important; /* reduce left padding so content sits further left */
+    display: block;
+}
+
+.personal-panel {
+    display: grid;
+    grid-template-columns: 1fr 180px; /* stacked info takes left, member box on right */
+    gap: 1rem;
+    align-items: center;
+}
+
+.personal-panel .info-stack {
+    grid-column: 1 / span 1;
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr); /* narrower label column to shift labels further left */
+    row-gap: 0.6rem;
+    justify-items: start;
+}
+
+.personal-panel .info-row {
+    display: contents;
+}
+
+.personal-panel .info-label {
+    display: block;
+    text-align: right;
+    padding-right: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 22px; /* explicit line-height to match values */
+    white-space: normal;
+    align-self: baseline; /* align label to text baseline of the row */
+}
+
+.personal-panel .info-value {
+    display: block;
+    grid-column: 2;
+    text-align: left;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--text);
+    align-self: baseline; /* align value to text baseline of the row */
+    line-height: 22px; /* match label line-height so baseline aligns */
+    margin: 0; /* remove any default margins */
+    padding: 0; /* no manual nudge; baseline alignment will handle positioning */
+    min-width: 0; /* allow truncation and prevent overflow pushing layout */
+}
+
+.personal-panel .info-value,
+.personal-panel .edit-input {
+    margin-top: 0; /* ensure values align with label first line */
+}
+
+.personal-panel .edit-input {
+    display: block;
+    grid-column: 2;
+    width: 100%;
+    font-size: 18px;
+}
+
+.personal-panel .member-box {
+    grid-column: 2;
+    align-self: center;
+    justify-self: start;
+    font-size: 16px;
+}
+
+/* member-box should not inherit .muted top margin — force zero so it centers vertically */
+.personal-panel .member-box.muted,
+.personal-panel .member-box {
+    margin: 0;
+    padding: 0;
+}
+
+.personal-panel .muted {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+
+/* Addresses header and empty state styling */
+.profile-right h4 {
+    margin-top: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.addresses-list .muted,
+.addresses-list .small-muted {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin: 6px 0;
+}
+
+/* Orders list styling */
+/* Orders styles removed */
+
+/* Orders-related styles removed */
+
+
+
+/* Remove visuals for settings tab as well */
+#settingsTab {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+/* redundant settingsTab child reset removed (merged above) */
+
+/* Orders-related styles removed per request */
