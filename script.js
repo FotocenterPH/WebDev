@@ -12,7 +12,767 @@ if (typeof window.currentLanguage === 'undefined') {
     };
 }
 
+// Process order from cart and open server-generated receipt.pdf
+// Process order from cart and open server-generated receipt.pdf
+async function processOrderFromCart() {
+    try {
+        const btn = document.getElementById('completeOrderBtn');
+        if (btn) btn.disabled = true;
+
+        // 🔥 KUHAIN ANG USER DATA MULA SA SERVER 🔥
+        let userData = null;
+        try {
+            const userRes = await fetch('/api/me', { credentials: 'include' });
+            if (userRes.ok) {
+                const userJson = await userRes.json();
+                userData = userJson.user;
+                console.log('✅ User data fetched:', userData);
+            }
+        } catch (e) {
+            console.warn('Failed to fetch user data', e);
+        }
+
+        // Fallback kung walang server data
+        if (!userData) {
+            userData = {
+                name: localStorage.getItem('userName') || 'Guest',
+                email: localStorage.getItem('userEmail') || '',
+                phone: localStorage.getItem('userPhone') || 'N/A',
+                address: localStorage.getItem('userAddress') || 'Malolos, Bulacan, Philippines'
+            };
+            console.log('⚠️ Using fallback user data:', userData);
+        }
+
+        // minimal payload: use cart totals/count displayed in DOM where available
+        const orderCount = Number(document.getElementById('selectedItemsCount') && document.getElementById('selectedItemsCount').textContent) || 1;
+        const totalEl = document.getElementById('cartTotalSelected') || document.getElementById('cartTotalAmount');
+        let amount = 0;
+        if (totalEl) {
+            const txt = (totalEl.textContent || '').replace(/[^0-9\.\-]/g, '');
+            amount = parseFloat(txt) || 0;
+        }
+
+        const payload = {
+            orderId: `order-${Date.now()}`,
+            orderCount: orderCount,
+            photos: [],
+            items: [],
+            paymentMethod: 'Online Payment',
+            amount: amount,
+            customer: {
+                name: userData.name || 'Guest',
+                email: userData.email || '',
+                phone: userData.phone || 'N/A',
+                address: userData.address || 'Malolos, Bulacan, Philippines'
+            }
+        };
+
+        const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        });
+
+        if (!res.ok) {
+            const json = await res.json().catch(() => null);
+            const err = (json && json.error) ? json.error : 'Order failed';
+            showBanner(err, { type: 'error' });
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        const data = await res.json();
+
+        // 🔥 STORE ORDER DATA WITH CUSTOMER DETAILS FOR PDF DOWNLOAD 🔥
+        window.lastOrderData = {
+            orderId: data.orderId,
+            username: userData.name || 'Guest',
+            orderCount: orderCount,
+            photos: [],  // You may want to populate this if needed
+            timestamp: new Date().toISOString(),
+            customer: {
+                name: userData.name || 'Guest',
+                email: userData.email || '',
+                phone: userData.phone || 'N/A',
+                address: userData.address || 'Malolos, Bulacan, Philippines'
+            }
+        };
+
+        if (data && data.receiptUrl) {
+            // open receipt in new tab/window so user can download
+            const url = data.receiptUrl;
+            try { window.open(url, '_blank'); } catch (e) { window.location = url; }
+            showBanner('Order complete — opening receipt', { type: 'success', duration: 4000 });
+        } else {
+            showBanner('Order completed but receipt URL missing', { type: 'warning' });
+        }
+
+    } catch (e) {
+        console.warn('processOrderFromCart failed', e);
+        showBanner('Order submission failed', { type: 'error' });
+    } finally {
+        const btn = document.getElementById('completeOrderBtn');
+        if (btn) btn.disabled = false;
+    }
+}
+
+// Non-blocking top banner for important notices with optional action button
+function showBanner(message, opts = {}) {
+    try {
+        const { actionText, actionCallback, duration = 8000, type = 'info' } = opts || {};
+
+        let banner = document.getElementById('siteBanner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'siteBanner';
+            banner.setAttribute('role', 'status');
+            banner.setAttribute('aria-live', 'polite');
+            banner.style.position = 'fixed';
+            banner.style.top = '-100px';
+            banner.style.left = '50%';
+            banner.style.transform = 'translateX(-50%)';
+            banner.style.zIndex = '100000';
+            banner.style.minWidth = '300px';
+            banner.style.maxWidth = '920px';
+            banner.style.width = 'calc(100% - 40px)';
+            banner.style.boxSizing = 'border-box';
+            banner.style.padding = '12px 16px';
+            banner.style.borderRadius = '8px';
+            banner.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+            banner.style.display = 'flex';
+            banner.style.alignItems = 'center';
+            banner.style.gap = '12px';
+            banner.style.transition = 'transform 300ms ease, top 300ms ease, opacity 300ms ease';
+
+            const text = document.createElement('div');
+            text.id = 'siteBannerText';
+            text.style.flex = '1';
+            text.style.fontSize = '14px';
+            text.style.color = 'white';
+            banner.appendChild(text);
+
+            const actions = document.createElement('div');
+            actions.id = 'siteBannerActions';
+            actions.style.display = 'flex';
+            actions.style.gap = '8px';
+            banner.appendChild(actions);
+
+            document.body.appendChild(banner);
+        }
+
+        const text = document.getElementById('siteBannerText');
+        const actions = document.getElementById('siteBannerActions');
+        text.textContent = message || '';
+        actions.innerHTML = '';
+
+        // color scheme by type
+        switch (type) {
+            case 'warning':
+                banner.style.background = 'linear-gradient(90deg,#ff9f43,#ff6b35)';
+                break;
+            case 'error':
+                banner.style.background = 'linear-gradient(90deg,#e94b35,#c62828)';
+                break;
+            case 'success':
+                banner.style.background = 'linear-gradient(90deg,#28a745,#219653)';
+                break;
+            default:
+                banner.style.background = 'linear-gradient(90deg,#2b7cff,#1b6ef6)';
+        }
+
+        if (actionText && typeof actionCallback === 'function') {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = actionText;
+            btn.style.background = 'rgba(255,255,255,0.95)';
+            btn.style.border = 'none';
+            btn.style.padding = '8px 12px';
+            btn.style.borderRadius = '6px';
+            btn.style.cursor = 'pointer';
+            btn.style.fontWeight = '600';
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                try { actionCallback(); } catch (err) {}
+                hideBanner();
+            });
+            actions.appendChild(btn);
+        }
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.setAttribute('aria-label', 'Dismiss');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.border = 'none';
+        closeBtn.style.color = 'rgba(255,255,255,0.9)';
+        closeBtn.style.fontSize = '18px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.addEventListener('click', hideBanner);
+        actions.appendChild(closeBtn);
+
+        // show
+        banner.style.opacity = '1';
+        banner.style.top = '20px';
+        banner.style.transform = 'translateX(-50%) translateY(0)';
+
+        // auto-hide
+        if (banner._hideTimer) clearTimeout(banner._hideTimer);
+        if (duration > 0) {
+            banner._hideTimer = setTimeout(() => {
+                hideBanner();
+            }, duration);
+        }
+    } catch (e) {
+        console.warn('showBanner failed', e);
+    }
+}
+
+function hideBanner() {
+    try {
+        const banner = document.getElementById('siteBanner');
+        if (!banner) return;
+        if (banner._hideTimer) clearTimeout(banner._hideTimer);
+        banner.style.top = '-120px';
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateX(-50%) translateY(-10px)';
+        setTimeout(() => {
+            try { banner.remove(); } catch (e) {}
+        }, 350);
+    } catch (e) { /* swallow */ }
+}
+
+// Observe mutations on the userName element and sanitize any accidental injections
+function observeUserNameMutations() {
+    try {
+        const userNameEl = document.getElementById('userName');
+        if (!userNameEl) return;
+
+        // Run once now
+        enforceUserNameSanitization();
+
+        // Create observer if not already created
+        if (window._fotocenterUserNameObserver) return;
+
+        const observer = new MutationObserver(mutations => {
+            // small debounce to avoid rapid repeated updates
+            if (window._fotocenterUserNameSanitizeTimer) clearTimeout(window._fotocenterUserNameSanitizeTimer);
+            window._fotocenterUserNameSanitizeTimer = setTimeout(() => {
+                try { enforceUserNameSanitization(); } catch (e) {}
+            }, 20);
+        });
+
+        observer.observe(userNameEl, { childList: true, characterData: true, subtree: true });
+        window._fotocenterUserNameObserver = observer;
+    } catch (e) { /* swallow */ }
+}
+
+// ensure observer is started early
+try { document.addEventListener('DOMContentLoaded', observeUserNameMutations); } catch (e) {}
+
+// Enforce sanitization for any stray places that may have injected combined text
+function enforceUserNameSanitization() {
+    try {
+        const userNameEl = document.getElementById('userName');
+        if (!userNameEl) return;
+        // If element contains the word "Welcome" or "My Account", strip them
+        const txt = (userNameEl.textContent || userNameEl.innerText || '').trim();
+        if (!txt) return;
+        const cleaned = cleanDisplayedName(txt.replace(/^Welcome[,:]?\s*/i, ''));
+        if (cleaned !== txt) {
+            userNameEl.textContent = cleaned;
+        }
+    } catch (e) { /* swallow */ }
+}
+
+// Clean name to avoid duplicated UI tokens (strip any accidental "My Account" text or arrows)
+function cleanDisplayedName(name) {
+    if (!name) return '';
+    let s = String(name);
+    // remove common menu labels and arrows that might accidentally be included
+    s = s.replace(/My\s*Account\s*[⏷▾\u25BE\u25BC]?/gi, '');
+    s = s.replace(/[⏷▾\u25BE\u25BC]/g, '');
+    // remove stray punctuation
+    s = s.replace(/[\-–—|]+$/g, '').trim();
+    return s;
+}
+
+// Simple HTML escape for names inserted into innerHTML
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"]+/g, function (s) {
+        switch (s) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            default: return s;
+        }
+    });
+}
+
+// Utility: hide or show hamburger/dropdown icon only within the welcome area
+function hideWelcomeHamburger(hide) {
+    try {
+        const welcome = document.getElementById('userWelcomeContainer') || document.querySelector('.user-welcome');
+        if (!welcome) return;
+        // hide any hamburger-icon inside welcome area
+        welcome.querySelectorAll('.hamburger-icon, .hamburger-bars, .hamburger-label').forEach(el => {
+            try { el.style.display = hide ? 'none' : ''; } catch (e) {}
+        });
+        // Do not hide the main hamburger menu here — only hide icons inside the welcome area.
+        // The main nav hamburger is managed by its own layout and should remain visible.
+    } catch (e) { /* swallow */ }
+}
+
+// Lightweight auth handshake & polling helper
+// Listens for a postMessage from an OAuth popup and polls /api/me
+// until the server session becomes available, then updates UI.
+function tryServerAuthWithRetries(opts = {}) {
+    const attempts = typeof opts.attempts === 'number' ? opts.attempts : 8;
+    const interval = typeof opts.interval === 'number' ? opts.interval : 500;
+    let tries = 0;
+
+    return new Promise((resolve) => {
+        const tick = () => {
+            tries++;
+            verifyServerAuth().then(user => {
+                try { console.debug('[auth-poll] attempt', tries, 'user=', user); } catch (e) {}
+                if (user && (user.email || user.name)) {
+                    try { localStorage.setItem('fotocenterUser', JSON.stringify({ email: user.email, name: user.name })); } catch (e) {}
+                    try { updateLoginStatus(); } catch (e) {}
+                    return resolve(user);
+                }
+
+                if (tries < attempts) {
+                    setTimeout(tick, interval);
+                } else {
+                    try { console.debug('[auth-poll] exhausted attempts'); } catch (e) {}
+                    return resolve(null);
+                }
+            }).catch(err => {
+                try { console.warn('[auth-poll] verifyServerAuth error', err); } catch (e) {}
+                if (tries < attempts) setTimeout(tick, interval);
+                else return resolve(null);
+            });
+        };
+
+        // start
+        tick();
+    });
+}
+
+// Accept a postMessage from an auth popup: { fotocenterAuth: true }
+window.addEventListener('message', (ev) => {
+    try {
+        const d = ev && ev.data;
+        if (!d) return;
+        if (d.fotocenterAuth) {
+            try { console.info('[auth-msg] received auth notification from popup'); } catch (e) {}
+            // close any login modal / popup indicators in the main window so UI is not stuck
+            try {
+                const modalSelectors = ['#loginModal', '.login-modal', '.auth-modal', '#authPopupNotice', '.popup-notice', '.popup-warning', '.oauth-popup'];
+                modalSelectors.forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => {
+                        try { el.style.display = 'none'; } catch(e) {}
+                    });
+                });
+                // hide common overlays
+                document.querySelectorAll('.modal, .popup-overlay, .overlay, .auth-overlay').forEach(el => {
+                    try { el.style.display = 'none'; } catch(e) {}
+                });
+            } catch (e) {
+                // swallow
+            }
+
+            // try polling until server session appears; updateLoginStatus will reconcile UI
+            // Close login modal immediately to avoid stuck modal while polling completes
+            try { closeLoginModal(); } catch (e) {}
+            tryServerAuthWithRetries({ attempts: 12, interval: 500 }).then(user => {
+                if (!user) {
+                    // final fallback: reload to ensure UI picks up any server-side session
+                    try { console.info('[auth-msg] server session not found after polling, reloading'); } catch (e) {}
+                    setTimeout(() => { try { window.location.reload(); } catch (e) {} }, 800);
+                }
+            });
+        }
+    } catch (e) {
+        // swallow
+    }
+});
+
+// module-scoped reference to the active language
 let currentLanguage = window.currentLanguage;
+
+// Initialize UI on page load
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        initUserArea();
+    } catch (e) { console.warn('initUserArea failed', e); }
+
+    try { updateLoginStatus(); } catch (e) { console.warn('updateLoginStatus failed', e); }
+
+    try { updateCartUI(); } catch (e) { }
+    try { updateCartBadgeOnLoad(); } catch (e) { }
+    try { initLanguageDropdown(); } catch (e) { }
+    try { initChatBackend(); } catch (e) { }
+    try { setupEventListeners(); } catch (e) { }
+    // ensure main hamburger menu remains visible; we only hide small icons inside welcome area
+    try { const hm = document.getElementById('hamburgerMenu'); if (hm) hm.style.display = ''; } catch (e) {}
+    try { enforceUserNameSanitization(); } catch (e) {}
+});
+
+    // ensure hamburger is visible (force if some earlier CSS/inline rule hid it)
+    try {
+        const hm = document.getElementById('hamburgerMenu');
+        if (hm) {
+            hm.style.display = hm.style.display && hm.style.display !== 'none' ? hm.style.display : 'flex';
+            hm.style.visibility = 'visible';
+        }
+    } catch (e) {}
+
+// Ensure the visible welcome text is normalized with prefix "Welcome, " when appropriate
+function normalizeWelcomeText() {
+    try {
+        const userWelcome = document.getElementById('userWelcomeContainer');
+        const userNameEl = document.getElementById('userName');
+        if (!userWelcome || !userNameEl) return;
+        if (userWelcome.style.display === 'none') return;
+        // Normalize to store only the raw name in the element; the CSS will show the "Welcome, " prefix.
+        let text = (userNameEl.textContent || '').trim();
+        // Use cleanDisplayedName to strip menu labels, arrows, and any accidental prefixes
+        const cleaned = cleanDisplayedName(text.replace(/^Welcome[,:]?\s*/i, ''));
+        if (cleaned.length > 0) {
+            userNameEl.textContent = cleaned;
+        }
+    } catch (e) { /* swallow */ }
+}
+
+// ============== USER WELCOME / DROPDOWN ==============
+function initUserArea() {
+    // Support both legacy arrow button and the newer accessible trigger
+    const legacyArrow = document.getElementById('userDropdownArrow');
+    const trigger = document.getElementById('userDropdownTrigger');
+    const menu = document.getElementById('userDropdownMenu');
+
+    // Use class-based open/close so the dropdown positions relative to the wrapper
+    // and so CSS transitions can handle visibility. This avoids layout jumps when
+    // toggling `display` directly and ensures the absolute-positioned menu is
+    // anchored to the positioned ancestor.
+    const openMenu = () => {
+        if (!menu) return;
+        try { userWelcome && userWelcome.classList.add('open'); } catch (e) {}
+        try { menu.setAttribute('aria-hidden', 'false'); } catch (e) {}
+        try { if (trigger) trigger.setAttribute('aria-expanded', 'true'); } catch (e) {}
+        try { if (legacyArrow) legacyArrow.setAttribute('aria-expanded', 'true'); } catch (e) {}
+        // make menu items focusable
+        try { menu.querySelectorAll('[role="menuitem"]').forEach((it, idx) => { it.setAttribute('tabindex', idx === 0 ? '0' : '-1'); }); } catch (e) {}
+        // Clear any stray inline display styles that could block the CSS-driven visibility
+        try { menu.style.display = ''; } catch (e) {}
+    };
+
+    const closeMenu = () => {
+        if (!menu) return;
+        try { userWelcome && userWelcome.classList.remove('open'); } catch (e) {}
+        try { menu.setAttribute('aria-hidden', 'true'); } catch (e) {}
+        try { if (trigger) trigger.setAttribute('aria-expanded', 'false'); } catch (e) {}
+        try { if (legacyArrow) legacyArrow.setAttribute('aria-expanded', 'false'); } catch (e) {}
+        // make menu items unfocusable
+        try { menu.querySelectorAll('[role="menuitem"]').forEach(it => { it.setAttribute('tabindex', '-1'); }); } catch (e) {}
+    };
+
+    const toggleMenu = (e) => {
+        if (e) e.stopPropagation();
+        if (!menu) return;
+        try {
+            const isOpen = !!(userWelcome && userWelcome.classList.contains('open'));
+            if (isOpen) closeMenu(); else openMenu();
+        } catch (err) {
+            // Defensive fallback: toggle the wrapper .open class (keep visibility model class-based)
+            try {
+                if (userWelcome) {
+                    const nowOpen = userWelcome.classList.toggle('open');
+                    if (menu) menu.setAttribute('aria-hidden', String(!nowOpen));
+                    if (trigger) trigger.setAttribute('aria-expanded', String(!!nowOpen));
+                }
+            } catch (e) {
+                // swallow
+            }
+        }
+    };
+
+    if (legacyArrow) {
+        legacyArrow.addEventListener('click', (e) => toggleMenu(e));
+    }
+    if (trigger) {
+        trigger.addEventListener('click', (e) => toggleMenu(e));
+        trigger.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleMenu(e);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                openMenu();
+                // focus first menu item
+                const first = menu && menu.querySelector('[role="menuitem"]');
+                if (first && typeof first.focus === 'function') first.focus();
+            }
+        });
+    }
+
+    // Close when clicking outside
+    // Close when clicking outside — also allow hovering the menu to keep it open while moving the pointer
+    document.addEventListener('click', (e) => {
+        const menuEl = document.getElementById('userDropdownMenu');
+        const trg = document.getElementById('userDropdownTrigger');
+        const arrowEl = document.getElementById('userDropdownArrow');
+        if (!menuEl) return;
+        if (menuEl.contains(e.target)) return;
+        if (trg && (trg === e.target || trg.contains(e.target))) return;
+        if (arrowEl && (arrowEl === e.target || arrowEl.contains(e.target))) return;
+        closeMenu();
+    });
+
+    // Keyboard navigation within menu
+    if (menu) {
+        menu.addEventListener('keydown', (e) => {
+            const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+            if (!items.length) return;
+            const currentIndex = items.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const next = items[(currentIndex + 1) % items.length];
+                if (next) next.focus();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prev = items[(currentIndex - 1 + items.length) % items.length];
+                if (prev) prev.focus();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeMenu();
+                if (trigger && typeof trigger.focus === 'function') trigger.focus();
+            }
+        });
+    }
+
+    updateLoginStatus();
+    // Initialize user welcome area
+    const guestLinks = document.getElementById('guestLinks');
+    const userWelcome = document.getElementById('userWelcomeContainer');
+    const userNameEl = document.getElementById('userName');
+    if (guestLinks) guestLinks.style.display = 'flex';
+    if (userWelcome) userWelcome.style.display = 'none';
+    if (userNameEl) {
+        // clean any leftover label text that might have been injected previously
+        userNameEl.textContent = cleanDisplayedName(userNameEl.textContent || '');
+    }
+
+    // Wire menu actions (View profile, Logout)
+    try {
+        const viewProfileMenu = document.getElementById('viewProfileMenu');
+        const logoutMenu = document.getElementById('logoutMenu');
+        if (viewProfileMenu) {
+            viewProfileMenu.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeUserMenuSafely();
+                navigateTo('profile');
+            });
+        }
+        if (logoutMenu) {
+            logoutMenu.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeUserMenuSafely();
+                logout();
+            });
+        }
+    } catch (e) {
+        // swallow
+    }
+
+    // Helper to close user menu
+    window.closeUserMenuSafely = function () {
+        try { const m = document.getElementById('userDropdownMenu'); if (m) { m.setAttribute('aria-hidden', 'true'); m.querySelectorAll('[role="menuitem"]').forEach(it => { try { it.setAttribute('tabindex','-1'); } catch(e){} }); } } catch (e) {}
+        try { const wrapper = document.getElementById('userWelcomeContainer'); if (wrapper) wrapper.classList.remove('open'); } catch (e) {}
+        try { const t = document.getElementById('userDropdownTrigger'); if (t) t.setAttribute('aria-expanded', 'false'); } catch (e) {}
+        try { const a = document.getElementById('userDropdownArrow'); if (a) a.setAttribute('aria-expanded', 'false'); } catch (e) {}
+    };
+
+    // Prevent accidental navigation or errors from a future "welcome" element
+    // For now the welcome element should be a no-op when clicked or activated
+    // This uses delegation and a one-time guard to avoid duplicate handlers.
+    if (!window._fotocenterWelcomeHandlerAdded) {
+        window._fotocenterWelcomeHandlerAdded = true;
+        document.addEventListener('click', (e) => {
+            try {
+                const w = e.target.closest && e.target.closest('.header-welcome, #userWelcomeContainer, .user-welcome');
+                if (!w) return;
+                // Allow clicks on interactive controls inside the welcome container (dropdown, links, buttons)
+                const interactive = e.target.closest && e.target.closest('#userDropdownArrow, #userDropdownMenu, a, button, input, select, textarea');
+                if (interactive) return; // do not block interactive elements
+                e.preventDefault();
+                e.stopPropagation();
+                // noop for now: non-interactive clicks inside the welcome element are ignored
+            } catch (err) {
+                // defensive: ensure no exceptions bubble to console
+            }
+        }, true);
+
+        // Prevent keyboard activation (Enter/Space) from triggering navigation for accessibility
+        document.addEventListener('keydown', (e) => {
+            try {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                const w = e.target.closest && e.target.closest('.header-welcome, #userWelcomeContainer, .user-welcome');
+                if (!w) return;
+                // Allow keyboard interaction with interactive controls inside the welcome area
+                const interactive = e.target.closest && e.target.closest('#userDropdownArrow, #userDropdownMenu, a, button, input, select, textarea');
+                if (interactive) return;
+                e.preventDefault();
+                e.stopPropagation();
+            } catch (err) {
+                // swallow
+            }
+        }, true);
+    }
+}
+
+function updateLoginStatus() {
+    // Immediate UI update from local cache
+    let cached = null;
+    try {
+        cached = JSON.parse(localStorage.getItem('fotocenterUser') || 'null');
+    } catch (e) {
+        try { localStorage.removeItem('fotocenterUser'); } catch (err) {}
+        cached = null;
+    }
+    const guestLinks = document.getElementById('guestLinks');
+    const userWelcome = document.getElementById('userWelcomeContainer');
+    const userNameEl = document.getElementById('userName');
+
+    // If no cached fotocenterUser present, accept legacy/local fallback
+    if (!cached) {
+        try {
+            const lsLogged = localStorage.getItem('isLoggedIn');
+            if (lsLogged === 'true') {
+                const ln = localStorage.getItem('userName') || localStorage.getItem('user') || null;
+                const le = localStorage.getItem('userEmail') || null;
+                if (ln || le) {
+                    cached = { name: ln, email: le };
+                    try { localStorage.setItem('fotocenterUser', JSON.stringify(cached)); } catch (e) {}
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (cached && (cached.email || cached.name)) {
+        if (guestLinks) guestLinks.style.display = 'none';
+        if (userWelcome) userWelcome.style.display = '';
+        if (userNameEl) userNameEl.textContent = cleanDisplayedName(cached.name || cached.email || '');
+        // Ensure the account trigger shows below the welcome name (visually handled in HTML/CSS)
+        try {
+            const trigger = document.getElementById('userDropdownTrigger');
+            if (trigger) trigger.style.display = '';
+            // update accessible label/title to include name
+            if (trigger) trigger.setAttribute('title', `Account menu for ${escapeHtml(cached.name || cached.email)}`);
+        } catch (e) {}
+        // Hide hamburger icon near welcome area to avoid showing dropdown arrow next to the welcome text
+        try { hideWelcomeHamburger(true); } catch (e) {}
+        try { document.body.classList.add('user-logged-in'); } catch (e) {}
+        // Ensure main hamburger menu is visible
+        try { const mainHamburger = document.getElementById('hamburgerMenu'); if (mainHamburger) { mainHamburger.style.display = ''; mainHamburger.style.visibility = 'visible'; } } catch (e) {}
+    } else {
+        if (guestLinks) guestLinks.style.display = 'flex';
+        if (userWelcome) userWelcome.style.display = 'none';
+        try { hideWelcomeHamburger(false); } catch (e) {}
+        try { document.body.classList.remove('user-logged-in'); } catch (e) {}
+        try { const mainHamburger = document.getElementById('hamburgerMenu'); if (mainHamburger) { mainHamburger.style.display = ''; mainHamburger.style.visibility = 'visible'; } } catch (e) {}
+    }
+
+    // Verify session with server in background and reconcile
+    verifyServerAuth().then(serverUser => {
+        if (serverUser && (serverUser.email || serverUser.name)) {
+            // ensure cache is consistent
+            try { localStorage.setItem('fotocenterUser', JSON.stringify({ email: serverUser.email, name: serverUser.name })); } catch (e) {}
+            if (guestLinks) guestLinks.style.display = 'none';
+            if (userWelcome) userWelcome.style.display = '';
+            if (userNameEl) userNameEl.textContent = cleanDisplayedName(serverUser.name || serverUser.email || '');
+            try {
+                const trigger = document.getElementById('userDropdownTrigger');
+                if (trigger) trigger.style.display = '';
+                if (trigger) trigger.setAttribute('title', `Account menu for ${escapeHtml(serverUser.name || serverUser.email)}`);
+            } catch (e) {}
+            try { hideWelcomeHamburger(true); } catch (e) {}
+            try { document.body.classList.add('user-logged-in'); } catch (e) {}
+            try { const mainHamburger = document.getElementById('hamburgerMenu'); if (mainHamburger) { mainHamburger.style.display = ''; mainHamburger.style.visibility = 'visible'; } } catch (e) {}
+        } else {
+            // server reports not authenticated. If a local login flag exists, respect it (client-side login)
+            let keepLocal = false;
+            try {
+                if (localStorage.getItem('isLoggedIn') === 'true') keepLocal = true;
+            } catch (e) { keepLocal = false; }
+
+            if (keepLocal) {
+                // restore UI from local values (do not wipe fotocenterUser)
+                try {
+                    const ln = localStorage.getItem('userName');
+                    const le = localStorage.getItem('userEmail');
+                    if (ln || le) {
+                        const obj = { name: ln, email: le };
+                        try { localStorage.setItem('fotocenterUser', JSON.stringify(obj)); } catch (e) {}
+                        if (guestLinks) guestLinks.style.display = 'none';
+                        if (userWelcome) userWelcome.style.display = '';
+                        if (userNameEl) userNameEl.textContent = cleanDisplayedName(ln || le || '');
+                        try { hideWelcomeHamburger(true); } catch (e) {}
+                        try { document.body.classList.add('user-logged-in'); } catch (e) {}
+                        return;
+                    }
+                } catch (e) {
+                    // fallthrough to clear
+                }
+            }
+
+            // not authenticated server-side and no local override -> clear cache and show guest links
+            try { localStorage.removeItem('fotocenterUser'); } catch (e) {}
+            if (guestLinks) guestLinks.style.display = 'flex';
+            if (userWelcome) userWelcome.style.display = 'none';
+            try { hideWelcomeHamburger(false); } catch (e) {}
+            try { document.body.classList.remove('user-logged-in'); } catch (e) {}
+            try { const mainHamburger = document.getElementById('hamburgerMenu'); if (mainHamburger) { mainHamburger.style.display = ''; mainHamburger.style.visibility = 'visible'; } } catch (e) {}
+        }
+    }).catch(() => {
+        // network or server error: keep cached UI as-is
+    });
+
+    // Normalize welcome text if present
+    try { normalizeWelcomeText(); } catch (e) {}
+}
+
+// Background server verification: returns user object or null
+function verifyServerAuth() {
+    return fetch('/api/me', { credentials: 'include' }).then(r => {
+        if (!r.ok) return null;
+        return r.json();
+    }).then(data => {
+        if (!data) return null;
+        return data.user || null;
+    }).catch(() => null);
+}
+
+function logout() {
+    // Call server to clear session, then clear local cache and update UI
+    try {
+        fetch('/api/logout', { method: 'POST', credentials: 'include' }).catch(() => { /* ignore */ }).finally(() => {
+            try { localStorage.removeItem('fotocenterUser'); } catch (e) {}
+            updateLoginStatus();
+            navigateTo('home');
+        });
+    } catch (e) {
+        try { localStorage.removeItem('fotocenterUser'); } catch (e) {}
+        updateLoginStatus();
+        navigateTo('home');
+    }
+}
+
+
 
 // Initialize language dropdown
 function initLanguageDropdown() {
@@ -22,16 +782,50 @@ function initLanguageDropdown() {
 
     if (!languageBtn || !languageMenu) return;
 
+    // avoid double-initialization (prevents duplicate event listeners)
+    if (languageBtn.dataset.i18nInit === '1') {
+        try { console.log('[i18n] initLanguageDropdown already initialized'); } catch (e) {}
+        return;
+    }
+    languageBtn.dataset.i18nInit = '1';
+
+    // debug: confirm initialization
+    try { console.log('[i18n] initLanguageDropdown called', { languageBtn, languageMenu, languageDropdown }); } catch (e) {}
+
+    // used to avoid immediate close from bubbling click after pointerdown
+    let lastToggleAt = 0;
+    // guard to prevent double-toggle from duplicate pointer events
+    let languageToggleLock = false;
+
     if (typeof languages === 'undefined') {
         console.error('languages not defined! Make sure languages.js loads first.');
         return;
     }
+
+    // pick preferred language from localStorage or default to first languages entry
+    try {
+        const preferred = localStorage.getItem('preferredLanguage');
+        if (preferred) {
+            const found = languages.find(l => l.code === preferred);
+            if (found) currentLanguage = found;
+        } else {
+            // if window.currentLanguage wasn't populated by server, pick languages[0]
+            if (!currentLanguage || !currentLanguage.code) {
+                currentLanguage = languages[0];
+            }
+        }
+    } catch (e) {
+        // localStorage may be unavailable; fallback to languages[0]
+        if (!currentLanguage || !currentLanguage.code) currentLanguage = languages[0];
+    }
+    window.currentLanguage = currentLanguage;
 
     languageMenu.innerHTML = '';
     languages.forEach(lang => {
         const item = document.createElement('div');
         item.className = `language-item ${lang.code === currentLanguage.code ? 'active' : ''}`;
         item.setAttribute('data-language', lang.code);
+        item.setAttribute('role','menuitem');
         const fc = lang.flagCode || lang.code;
         const cn = lang.countryName || lang.name;
         item.innerHTML = `
@@ -40,19 +834,50 @@ function initLanguageDropdown() {
             <span class="currency-code">${lang.currency}</span>
             <span class="currency-symbol">${lang.symbol}</span>
         `;
-        item.addEventListener('click', () => selectLanguage(lang));
+        item.addEventListener('click', () => {
+            selectLanguage(lang);
+            // close dropdown after selection
+            if (languageDropdown) languageDropdown.classList.remove('open');
+            try { languageMenu.style.display = 'none'; } catch (e) {}
+            try { languageBtn.setAttribute('aria-expanded', 'false'); } catch (e) {}
+        });
         languageMenu.appendChild(item);
     });
 
+    // ensure ARIA state
+    try { languageBtn.setAttribute('aria-expanded', 'false'); } catch (e) {}
+
+    // Toggle via click (handles mouse and keyboard more consistently).
     languageBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        languageDropdown.classList.toggle('open');
+        const isOpen = languageDropdown.classList.toggle('open');
+        try { languageBtn.setAttribute('aria-expanded', String(isOpen)); } catch (e) {}
+        try { languageMenu.style.display = isOpen ? 'block' : 'none'; } catch (e) {}
     });
 
-    document.addEventListener('click', (e) => {
-        if (!languageDropdown.contains(e.target)) {
-            languageDropdown.classList.remove('open');
+    // keyboard support
+    languageBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            const isOpen = languageDropdown.classList.toggle('open');
+            try { languageBtn.setAttribute('aria-expanded', String(isOpen)); } catch (e) {}
+            try { languageMenu.style.display = isOpen ? 'block' : 'none'; } catch (e) {}
         }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const first = languageMenu.querySelector('.language-item');
+            if (first && typeof first.focus === 'function') first.focus();
+        }
+    });
+
+    // global click handler: close language menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!languageDropdown.classList.contains('open')) return;
+        if (languageDropdown.contains(e.target)) return;
+        languageDropdown.classList.remove('open');
+        try { languageMenu.style.display = 'none'; } catch (e) {}
+        try { languageBtn.setAttribute('aria-expanded', 'false'); } catch (e) {}
     });
 
     updateLanguageButton();
@@ -422,7 +1247,7 @@ class Slideshow {
             { name: 'Calendar', nameKey: 'slide_calendar', priceUSD: 1.08, image: 'https://images.pexels.com/photos/4692171/pexels-photo-4692171.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&fit=crop', desc: 'Make your own custom calendar', descKey: 'slide_calendar_desc' },
             { name: 'Photo Book', nameKey: 'slide_photo_book', priceUSD: 2.16, image: 'https://images.pexels.com/photos/694740/pexels-photo-694740.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&fit=crop', desc: 'Premium hardcover photo books', descKey: 'slide_photo_book_desc' },
             { name: 'Canvas', nameKey: 'slide_canvas', priceUSD: 3.60, image: 'https://images.pexels.com/photos/1572386/pexels-photo-1572386.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&fit=crop', desc: 'Your favorite photo on canvas', descKey: 'slide_canvas_desc' },
-            { name: 'Mouse Pads', nameKey: 'slide_mouse_pads', priceUSD: 0.81, image: 'https://images.unsplash.com/photo-1625723044792-44de16ccb5e9?w=1260&h=750&fit=crop', desc: 'Custom photo mouse pads', descKey: 'slide_mouse_pads_desc' },
+            // Mouse Pads removed to stop excessive external image requests
             { name: 'Double Cards', nameKey: 'slide_double_cards', priceUSD: 1.26, image: 'https://images.pexels.com/photos/1037995/pexels-photo-1037995.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&fit=crop', desc: 'Elegant folded greeting cards', descKey: 'slide_double_cards_desc' }
         ];
         this.init();
@@ -1325,10 +2150,15 @@ function handleLoginModal(e) {
     fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
     }).then(r => r.json()).then(data => {
         if (data && data.success) {
             closeLoginModal();
+            try {
+                const userObj = (data.user && (data.user.email || data.user.name)) ? { email: data.user.email, name: data.user.name } : { email };
+                localStorage.setItem('fotocenterUser', JSON.stringify(userObj));
+            } catch (e) {}
             updateLoginStatus();
             alert('Logged in successfully');
         } else {
@@ -1338,11 +2168,34 @@ function handleLoginModal(e) {
 }
 
 function simulateSocialLogin(provider) {
-    // Open OAuth popup to server route
-    const url = `/auth/${provider}`;
-    const popup = window.open(url, '_blank', 'width=600,height=700');
-    // We can't reliably detect when popup finishes; user should be redirected back to / and session set
-    alert(`A popup will open for ${provider} login. Complete the flow in the new window.`);
+    // Start OAuth via full-page redirect (no popup). This avoids popup blockers and
+    // improves reliability across cross-origin / ngrok setups. The server should
+    // redirect back to the application after authentication and the client will
+    // reconcile session state on load.
+    try {
+        // non-blocking user notice
+        const notice = document.createElement('div');
+        notice.className = 'auth-redirect-notice';
+        notice.textContent = `Redirecting to ${provider} for authentication...`;
+        notice.style.position = 'fixed';
+        notice.style.top = '16px';
+        notice.style.right = '16px';
+        notice.style.background = 'var(--accent)';
+        notice.style.color = 'white';
+        notice.style.padding = '8px 12px';
+        notice.style.borderRadius = '8px';
+        notice.style.zIndex = 9999;
+        document.body.appendChild(notice);
+        setTimeout(() => { try { notice.remove(); } catch (e) {} }, 3500);
+    } catch (e) { /* ignore UI notice failures */ }
+
+    // Navigate to server OAuth endpoint in the same window
+    try {
+        window.location.href = `/auth/${provider}`;
+    } catch (e) {
+        // As a final fallback, open in a new tab
+        try { window.open(`/auth/${provider}`, '_blank'); } catch (err) { /* ignore */ }
+    }
 }
 
 function toggleChat() {
@@ -1397,7 +2250,8 @@ function initChatBackend() {
             return;
         }
 
-        const socket = io('http://localhost:3000');
+        // Connect to the same origin the page was loaded from (works with ngrok)
+        const socket = io();
         window.socket = socket;
 
         socket.on('connect', () => {
@@ -3527,10 +4381,16 @@ function handleLogin(event) {
     fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
     }).then(r => r.json()).then(data => {
         if (data && data.success) {
             alert('Login successful! Welcome back.');
+            try {
+                localStorage.setItem('isLoggedIn', '1');
+                localStorage.setItem('userEmail', data.user && data.user.email ? data.user.email : email);
+                localStorage.setItem('userName', data.user && data.user.name ? data.user.name : (data.user && data.user.email) || email);
+            } catch (e) {}
             navigateTo('home');
             updateLoginStatus();
         } else {
@@ -3554,16 +4414,40 @@ function handleSignUp(event) {
     fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password }),
+        credentials: 'include'
     }).then(r => r.json()).then(data => {
         if (data && data.success) {
             alert('Account created successfully! Welcome to FOTOCENTER.');
+            try {
+                const userObj = { email: data.user && data.user.email ? data.user.email : email, name: data.user && data.user.name ? data.user.name : name };
+                localStorage.setItem('fotocenterUser', JSON.stringify(userObj));
+            } catch (e) {}
             navigateTo('home');
             updateLoginStatus();
         } else {
             alert('Signup failed: ' + (data.error || 'Unknown'));
         }
     }).catch(err => { console.error(err); alert('Signup request failed'); });
+}
+
+function renderProfile() {
+    const container = document.getElementById('profileContent');
+    if (!container) return;
+    fetch('/api/me', { credentials: 'include' }).then(r => r.json()).then(data => {
+        const user = data && data.user;
+        if (!user) {
+            container.innerHTML = '<p>You are not logged in.</p>';
+            return;
+        }
+        container.innerHTML = `
+            <div class="profile-card">
+                <p><strong>Name:</strong> ${user.name || 'N/A'}</p>
+                <p><strong>Email:</strong> ${user.email || 'N/A'}</p>
+                <p><strong>Joined:</strong> ${user.createdAt || 'N/A'}</p>
+            </div>
+        `;
+    }).catch(() => { container.innerHTML = '<p>Failed to load profile.</p>'; });
 }
 
 function signUpWithGoogle() {
@@ -3573,29 +4457,180 @@ function signUpWithGoogle() {
 
 function updateLoginStatus() {
     const loginLink = document.querySelector('.login-link');
-    fetch('/api/me').then(r => r.json()).then(data => {
+    const guestLinks = document.getElementById('guestLinks');
+    const userWelcome = document.getElementById('userWelcomeContainer');
+    const userNameEl = document.getElementById('userName');
+
+    fetch('/api/me', { credentials: 'include' }).then(r => r.json()).then(data => {
         const user = data && data.user;
-        if (user && loginLink) {
-            loginLink.textContent = 'Log out';
-            loginLink.onclick = function () {
-                fetch('/api/logout', { method: 'POST' }).then(() => {
-                    updateLoginStatus();
-                    navigateTo('home');
-                }).catch(() => { updateLoginStatus(); navigateTo('home'); });
-                return false;
-            };
-        } else if (loginLink) {
-            loginLink.textContent = 'Log in';
-            loginLink.onclick = function () {
-                openLoginModal();
-                return false;
-            };
+        if (!loginLink) return;
+
+        // Clear existing content
+        loginLink.innerHTML = '';
+
+        if (user) {
+            const displayName = user.name || user.email || 'User';
+
+            // Update guest/user UI areas for SPA-like behavior
+            try {
+                if (guestLinks) guestLinks.style.display = 'none';
+                if (userWelcome) {
+                    userWelcome.style.display = 'flex';
+                    userWelcome.classList.add('welcome-pill');
+                    userWelcome.setAttribute('role', 'button');
+                    userWelcome.setAttribute('tabindex', '0');
+                    userWelcome.setAttribute('aria-label', `Welcome ${displayName}. Account`);
+                    userWelcome.setAttribute('aria-live', 'polite');
+
+                    // Add subtle pulse unless user prefers reduced motion
+                    try {
+                        const prefersReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                        if (!prefersReduce) {
+                            userWelcome.classList.add('pulse');
+                        } else {
+                            userWelcome.classList.remove('pulse');
+                        }
+                    } catch (e) {}
+                }
+                if (userNameEl) {
+                    // Only display the cleaned user name here. The visible "Welcome, " prefix
+                    // and the separate account trigger are rendered elsewhere (CSS/HTML).
+                    try {
+                        userNameEl.textContent = cleanDisplayedName(displayName);
+                    } catch (e) {
+                        userNameEl.textContent = displayName;
+                    }
+                }
+
+                // Wire up account menu toggle on the welcome area
+                try {
+                    const userMenuBtn = document.getElementById('userDropdownArrow');
+                    const userMenu = document.getElementById('userDropdownMenu');
+                    if (userWelcome) {
+                        // open/close when clicking the whole welcome area or the arrow
+                        const toggleMenu = (e) => {
+                            e && e.stopPropagation();
+                            if (!userMenu) return;
+                            const isOpen = userMenu.style.display === 'block';
+                            userMenu.style.display = isOpen ? 'none' : 'block';
+                            try { userMenuBtn.setAttribute('aria-expanded', String(!isOpen)); } catch (e) {}
+                        };
+
+                        // avoid adding duplicate listeners
+                        if (!userWelcome.dataset.menuInit) {
+                            userWelcome.addEventListener('click', toggleMenu);
+                            if (userMenuBtn) userMenuBtn.addEventListener('click', toggleMenu);
+                            // close on outside click
+                            document.addEventListener('click', (ev) => {
+                                if (!userWelcome.contains(ev.target)) {
+                                    if (userMenu) userMenu.style.display = 'none';
+                                    try { if (userMenuBtn) userMenuBtn.setAttribute('aria-expanded', 'false'); } catch (e) {}
+                                }
+                            });
+                            userWelcome.dataset.menuInit = '1';
+                        }
+                    }
+                } catch (e) {}
+            } catch (e) { /* defensive: ignore DOM setting errors */ }
+
+            // Build compact hamburger-style entry in top-right if desired (keeps previous behavior)
+            // Add a compact hamburger-style entry only if the page does not already include
+            // the dedicated account trigger/menu (#userDropdownTrigger). This avoids duplicating
+            // account controls in the header.
+            if (!document.getElementById('userDropdownTrigger')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'hamburger-menu user-menu-wrapper';
+
+                const btn = document.createElement('button');
+                btn.className = 'hamburger-icon user-btn';
+                btn.type = 'button';
+                btn.innerHTML = `
+                    <span class="hamburger-bars" aria-hidden="true">
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                    </span>
+                    <span class="hamburger-label">Welcome, ${displayName}</span>
+                `;
+
+                const dropdown = document.createElement('div');
+                dropdown.className = 'hamburger-dropdown user-dropdown';
+                dropdown.innerHTML = `
+                    <a href="#" class="dropdown-item menu-profile">My Profile</a>
+                    <a href="#" class="dropdown-item menu-logout">Log out</a>
+                `;
+
+                wrapper.appendChild(btn);
+                wrapper.appendChild(dropdown);
+                loginLink.appendChild(wrapper);
+
+                // Toggle behavior mirrors hamburger menu
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    wrapper.classList.toggle('open');
+                });
+
+                // Close when clicking outside
+                document.addEventListener('click', function (e) {
+                    if (!wrapper.contains(e.target)) wrapper.classList.remove('open');
+                });
+
+                // Profile click
+                const profileLink = dropdown.querySelector('.menu-profile');
+                const logoutLink = dropdown.querySelector('.menu-logout');
+                profileLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    wrapper.classList.remove('open');
+                    navigateTo('profile');
+                    setTimeout(() => { if (typeof renderProfile === 'function') renderProfile(); }, 100);
+                });
+
+                // Logout
+                logoutLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    fetch('/api/logout', { method: 'POST', credentials: 'include' }).then(() => {
+                        try { localStorage.removeItem('userName'); localStorage.removeItem('userEmail'); localStorage.removeItem('isLoggedIn'); } catch (e) {}
+                        updateLoginStatus();
+                        navigateTo('home');
+                    }).catch(() => { try { localStorage.removeItem('userName'); localStorage.removeItem('userEmail'); localStorage.removeItem('isLoggedIn'); } catch (e) {} updateLoginStatus(); navigateTo('home'); });
+                });
+            }
+        } else {
+            // not authenticated: ensure guest UI is shown and welcome cleared
+            try {
+                if (guestLinks) guestLinks.style.display = 'flex';
+                if (userWelcome) {
+                    userWelcome.style.display = 'none';
+                    userWelcome.classList.remove('welcome-pill');
+                    userWelcome.classList.remove('pulse');
+                    userWelcome.removeAttribute('role');
+                    userWelcome.removeAttribute('tabindex');
+                    userWelcome.removeAttribute('aria-label');
+                    userWelcome.removeAttribute('aria-live');
+                }
+                if (userNameEl) userNameEl.textContent = '';
+            } catch (e) {}
+
+            const link = document.createElement('a');
+            link.href = '#';
+            link.textContent = 'Log in';
+            link.addEventListener('click', function (e) { e.preventDefault(); openLoginModal(); return false; });
+            loginLink.appendChild(link);
         }
     }).catch(err => {
-        if (loginLink) {
-            loginLink.textContent = 'Log in';
-            loginLink.onclick = function () { openLoginModal(); return false; };
-        }
+        if (!loginLink) return;
+        loginLink.innerHTML = '';
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = 'Log in';
+        link.addEventListener('click', function (e) { e.preventDefault(); openLoginModal(); return false; });
+        loginLink.appendChild(link);
+
+        // Best-effort restore guest UI
+        try {
+            if (guestLinks) guestLinks.style.display = 'flex';
+            if (userWelcome) userWelcome.style.display = 'none';
+        } catch (e) {}
     });
 }
 
@@ -4416,6 +5451,9 @@ function generateReceiptPDF(orderData, returnData) {
         return null;
     }
 
+    console.log('🔍 generateReceiptPDF called with orderData:', orderData);
+    console.log('🔍 orderData.customer:', orderData ? orderData.customer : 'no orderData');
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
@@ -4437,6 +5475,11 @@ function generateReceiptPDF(orderData, returnData) {
     function fmtPrice(usd) {
         return lang.symbol + (usd * (lang.rate || 1)).toFixed(2);
     }
+
+    // Defensive defaults: ensure orderData exists and has a photos array to avoid runtime errors
+    orderData = orderData || {};
+    if (!Array.isArray(orderData.photos)) orderData.photos = [];
+    if (!orderData.orderId) orderData.orderId = 'ORDER-' + Date.now();
 
     // ===== SECTION 1: HEADER =====
 
@@ -4460,10 +5503,107 @@ function generateReceiptPDF(orderData, returnData) {
     doc.line(margin, y, pageWidth - margin, y);
     y += 10;
 
-    // Customer info (left) | Order info (right)
-    var customerName = localStorage.getItem('userName') || 'Guest';
-    var customerEmail = localStorage.getItem('userEmail') || 'N/A';
-    var orderDate = new Date(orderData.timestamp);
+    // 🔥 GAMITIN ANG DATA MULA SA orderData 🔥
+    var customerName = 'Guest';
+    var customerPhone = 'N/A';
+    var rawAddress = '';
+
+    if (orderData && orderData.customer) {
+        customerName = orderData.customer.name || 'Guest';
+        customerPhone = orderData.customer.phone || 'N/A';
+        rawAddress = orderData.customer.address || '';
+    } else {
+        // Fallback sa localStorage kung wala sa orderData
+        customerName = localStorage.getItem('userName') || 'Guest';
+        customerPhone = localStorage.getItem('userPhone') || 'N/A';
+        rawAddress = localStorage.getItem('userAddress') || '';
+    }
+
+    var customerEmail = orderData?.customer?.email || localStorage.getItem('userEmail') || 'N/A';
+
+    // Ensure we have a Date object for the order timestamp
+    var orderDate = (orderData && orderData.timestamp) ? new Date(orderData.timestamp) : new Date();
+
+    // Helper: format a long single-line address into 2-3 readable lines
+    function formatAddressLines(addr) {
+        if (!addr || typeof addr !== 'string') return [];
+
+        // normalize whitespace
+        let normalized = addr.replace(/\s+/g, ' ').trim();
+
+        // prefer comma-separated parts when available — return each part as its own line
+        let parts = normalized.split(',').map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+            return parts;
+        }
+
+        // If no comma-separated parts, fall back to intelligent splitting
+        const single = parts[0] || normalized;
+        if (single.length <= 40) return [single];
+
+        // try to split at nearest space around the middle
+        const mid = Math.floor(single.length / 2);
+        let splitAt = single.indexOf(' ', mid);
+        if (splitAt === -1) splitAt = single.lastIndexOf(' ', mid);
+        if (splitAt === -1) splitAt = mid;
+
+        const first = single.slice(0, splitAt).trim();
+        const rest = single.slice(splitAt).trim();
+        return [first, rest].filter(Boolean);
+    }
+    // New: prefer structured address object when available to produce 3-line format
+    function capitalizeWords(s) {
+        if (!s) return '';
+        return String(s).toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    function buildAddressLinesFromObj(a) {
+        if (!a) return [];
+        const lines = [];
+
+        // Line 1: keep full line1 as-is (may contain multiple commas) and append village if present
+        const line1 = (a.line1 || '').trim().replace(/\,+$/g, '');
+        const village = (a.village || '').trim();
+        if (line1 && village) {
+            lines.push(`${line1}, ${village}`);
+        } else if (line1) {
+            lines.push(line1);
+        } else if (village) {
+            lines.push(village);
+        }
+
+        // Line 2: Town, City (Town first, City uppercased to match example)
+        const town = (a.town || '').trim();
+        const city = (a.city || '').trim();
+        if (town || city) {
+            const cityPart = city ? city.toUpperCase() : '';
+            const townPart = town ? capitalizeWords(town) : '';
+            if (town && city) lines.push(`${townPart}, ${cityPart}`);
+            else lines.push(townPart || cityPart);
+        }
+
+        // Line 3: Country, Postal
+        const country = (a.country || '').trim();
+        const postal = (a.postal || '').trim();
+        if (country || postal) {
+            const countryPart = country ? capitalizeWords(country) : '';
+            if (country && postal) lines.push(`${countryPart}, ${postal}`);
+            else lines.push(countryPart || postal);
+        }
+
+        return lines.filter(Boolean);
+    }
+
+    let addrLines = [];
+    // Prefer structured address object on the orderData.customer (set earlier in processOrderFromCart)
+    const addrObj = orderData?.customer?.addressObj || orderData?.customer?.addressObj;
+    if (addrObj && (addrObj.line1 || addrObj.village || addrObj.town || addrObj.city || addrObj.country || addrObj.postal)) {
+        addrLines = buildAddressLinesFromObj(addrObj);
+    } else {
+        addrLines = formatAddressLines(rawAddress || 'Malolos, Bulacan, Philippines');
+    }
+    // Debug: log address transformation so we can confirm runtime behavior in DevTools
+    try { console.log('generateReceiptPDF: rawAddress=', rawAddress, 'formatted addrLines=', addrLines); } catch (e) {}
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
@@ -4472,7 +5612,19 @@ function generateReceiptPDF(orderData, returnData) {
     doc.setFont('helvetica', 'normal');
     doc.text(customerName, margin, y + 5);
     doc.text(customerEmail, margin, y + 10);
-    doc.text('Malolos, Bulacan, Philippines', margin, y + 15);
+
+    // print address lines vertically with small spacing
+    let addrStartY = y + 15;
+    if (addrLines && addrLines.length > 0) {
+        // Print each component on its own line with reduced gap to match requested layout
+        const lineGap = 5; // smaller gap between address lines (mm)
+        for (let i = 0; i < addrLines.length; i++) {
+            const lineY = addrStartY + (i * lineGap);
+            // Remove any trailing commas from individual parts
+            const clean = String(addrLines[i]).replace(/\,+$/g, '').trim();
+            doc.text(clean, margin, lineY);
+        }
+    }
 
     // Right side
     var rLabel = pageWidth - margin - 65;
@@ -4498,7 +5650,14 @@ function generateReceiptPDF(orderData, returnData) {
     doc.setFont('helvetica', 'normal');
     doc.text(lang.currency, rVal, y + 15, { align: 'right' });
 
-    y += 23;
+    // advance y by at least previous value, extend if address used more lines
+    const usedHeight = 12 + (addrLines.length * 5);
+    // add a small extra gap to ensure the Delivery section does not overlap multi-line addresses
+    y += Math.max(20, usedHeight) + 6;
+
+    // add a small extra gap below the address block so the Delivery section
+    // doesn't overlap when the address uses multiple lines
+    y += 6;
 
     // Delivery method
     doc.setFont('helvetica', 'bold');
@@ -4750,10 +5909,16 @@ function downloadReceipt() {
         alert('No order data available. Please complete an order first.');
         return;
     }
-    generateReceiptPDF(window.lastOrderData);
+    try {
+        generateReceiptPDF(window.lastOrderData);
+    } catch (e) {
+        console.error('downloadReceipt failed', e);
+        alert('Failed to generate or download receipt. Check console for details.');
+    }
 }
 
 window.downloadReceipt = downloadReceipt;
+
 
 function getUserOrderCount(username) {
     const key = `orderCount_${username}`;
@@ -5148,13 +6313,18 @@ async function processOrderFromCart() {
         return;
     }
 
-    const username = localStorage.getItem('userName') || localStorage.getItem('userEmail')?.split('@')[0] || 'guest';
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-
-    if (!isLoggedIn) {
-        const proceed = confirm('You are not logged in. Continue as guest?');
-        if (!proceed) return;
+    // Enforce server-side authentication: require user to be logged in before creating orders.
+    const serverUser = await verifyServerAuth();
+    if (!serverUser) {
+        // Show a non-blocking banner with login action instead of blocking alert
+        try {
+            showBanner('You need to be login first to create an order', { actionText: 'Log in', actionCallback: openLoginModal, type: 'warning' });
+        } catch (e) {
+            try { openLoginModal(); } catch (err) {}
+        }
+        return;
     }
+    const username = serverUser.name || serverUser.email || (localStorage.getItem('userEmail')?.split('@')[0]) || 'guest';
 
     const multiPhotoTypes = ['calendar', 'photobook', 'doublecards'];
 
@@ -5248,11 +6418,23 @@ async function processOrderFromCart() {
                 endFile: generateEndFile(orderData),
                 receiptFile: generateReceiptFile(orderData),
                 receiptPDF: generateReceiptPDFData(orderData)
-            })
+            }),
+            credentials: 'include'
         });
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Server error');
+        // Improved diagnostics: always read raw response text so we can log errors
+        const responseText = await response.text();
+        let result = null;
+        try {
+            result = responseText ? JSON.parse(responseText) : null;
+        } catch (e) {
+            console.warn('processOrderFromCart: failed to parse JSON response', e, responseText);
+        }
+
+        if (!response.ok) {
+            console.error('processOrderFromCart: POST /api/orders failed', { status: response.status, statusText: response.statusText, body: responseText, parsed: result });
+            throw new Error((result && result.error) ? result.error : `Server error: ${response.status} ${response.statusText}`);
+        }
 
         // Save order to localStorage for Printing tab
         const completedOrders = JSON.parse(localStorage.getItem('fotocenterOrders') || '[]');
@@ -5274,10 +6456,51 @@ async function processOrderFromCart() {
         shoppingCart = shoppingCart.filter(item => !item.selected);
         updateCartStorage();
 
+        
         // Store order data for PDF receipt download
-        window.lastOrderData = orderData;
+        // Use serverUser (from verifyServerAuth) when available, otherwise fall back to localStorage
+        // try to enrich customer info with address from server-side addresses endpoint
+        const customerSource = serverUser || (() => { try { return JSON.parse(localStorage.getItem('fotocenterUser') || 'null'); } catch (e) { return null; } })() || {};
+        let resolvedAddress = customerSource.address || localStorage.getItem('userAddress') || '';
+        let resolvedAddressObj = null;
+        try {
+            const addrRes = await fetch('/api/addresses', { credentials: 'include' });
+            if (addrRes && addrRes.ok) {
+                const addrJson = await addrRes.json().catch(() => null);
+                const addrs = (addrJson && addrJson.addresses) ? addrJson.addresses : [];
+                if (addrs && addrs.length > 0) {
+                    const def = addrs.find(a => a.isDefault) || addrs[0];
+                    // keep structured object for richer formatting in PDF
+                    resolvedAddressObj = def;
+                    // prefer city / town / country ordering for fallback single-line display
+                    const city = def.city || def.town || def.village || null;
+                    const province = (def.town && def.town !== city) ? def.town : (def.village && def.village !== city ? def.village : null);
+                    const country = def.country || null;
+                    const components = [city, province, country].filter(Boolean);
+                    if (components.length > 0) resolvedAddress = components.join(', ');
+                }
+            }
+        } catch (e) {
+            // ignore fetch/address errors and fall back to existing values
+        }
+
+        window.lastOrderData = {
+            orderId: orderData.orderId,
+            username: orderData.username,
+            orderCount: orderData.orderCount,
+            photos: photos,
+            timestamp: orderData.timestamp,
+            customer: {
+                name: customerSource.name || customerSource.email || 'Guest',
+                email: customerSource.email || '' ,
+                phone: customerSource.phone || localStorage.getItem('userPhone') || 'N/A',
+                address: resolvedAddress || 'Malolos, Bulacan, Philippines',
+                addressObj: resolvedAddressObj
+            }
+        };
 
         const message = `✅ Thank you for purchasing at FOTOCENTER PH!\n\nYour Order Number: ${orderData.orderId} <button class="copy-btn" onclick="copyOrderNumber()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; margin-left:5px;" title="Copy order number">📋</button>\n\nTotal Photos: ${photos.length}\n\nPlease copy and save your Order Number.\nYou can track your order status in Cart → Printing tab.\n\nThank you for choosing FOTOCENTER!`;
+
         document.getElementById('orderSuccessMessage').innerHTML = message;
         document.getElementById('orderSuccessModal').style.display = 'flex';
 
